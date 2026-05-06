@@ -32,6 +32,23 @@ from torch.autograd import Function
 from numba import cuda
 import math
 
+# cuCtxGetDevice_v2 is broken on some CUDA builds (returns wrong/garbage device IDs).
+# numba always prefers _v2 variants; override the binding to use the plain variant.
+def _patch_numba_ctx_get_device():
+    import ctypes
+    from numba.cuda.cudadrv import driver as _drv_mod, drvapi as _drvapi
+    _drv = _drv_mod.driver  # module-level Driver singleton
+    _drv.ensure_initialized()
+    _fn = ctypes.CDLL(_drv.lib._name).cuCtxGetDevice
+    _fn.restype = ctypes.c_int
+    _fn.argtypes = (ctypes.POINTER(_drvapi.cu_device),)
+    def _wrapped(*args):
+        _drv._check_ctypes_error('cuCtxGetDevice', _fn(*args))
+    setattr(_drv, 'cuCtxGetDevice', _wrapped)
+
+_patch_numba_ctx_get_device()
+del _patch_numba_ctx_get_device
+
 # ----------------------------------------------------------------------------------------------------------------------
 @cuda.jit
 def compute_softdtw_cuda(D, gamma, bandwidth, max_i, max_j, n_passes, R):
