@@ -8,7 +8,7 @@ import spacy
 from spacy.matcher import Matcher
 from .span_utils import get_spans_offsets, compute_overall_span_loss
 
-class DualSpaceWithCMA(VariousDivergence):
+class DualSpaceKDWithCMA(VariousDivergence):
     def __init__(self, args, padding_id=-100) -> None:
         super().__init__(args, padding_id=padding_id)
 
@@ -24,46 +24,57 @@ class DualSpaceWithCMA(VariousDivergence):
         self.matcher.add("VERB_PHRASE", [VERB_PHRASE_PATTERN])
 
     def forward(
-        self, 
-        distiller, 
-        batch, 
-        logging_output
+        self,
+        distiller,
+        input_data,
+        output_data,
+        logging_output,
+        batch_denom,
     ):
         model = distiller.student_model
         teacher_model = distiller.teacher_model
         teacher_model.eval()
+        teacher_model_type = distiller.teacher_model_type
 
-        batch_input = batch["input_batch"]
+        prefix = f"teacher_{teacher_model_type}_"
+        teacher_input = {k[len(prefix):]: v for k, v in input_data.items() if k.startswith(prefix)}
+        teacher_label = {k[len(prefix):]: v for k, v in output_data.items() if k.startswith(prefix)}
+
+        batch = {
+            "input_batch": input_data,
+            "label_batch": {"label": output_data["label"], "loss_denom": batch_denom},
+            "teacher_input_batch": teacher_input,
+            "teacher_label_batch": teacher_label,
+        }
+
+        batch_input = input_data
 
         self.distiller = distiller
-        outputs = model(**batch["input_batch"], output_hidden_states=True)
+        student_kwargs = {
+            "input_ids": input_data["input_ids"],
+            "attention_mask": input_data["attention_mask"],
+        }
+        if "position_ids" in input_data:
+            student_kwargs["position_ids"] = input_data["position_ids"]
+        outputs = model(**student_kwargs, output_hidden_states=True)
         logits = outputs.logits
         log = {}
         ce_loss = self.compute_cross_entropy_loss(
-            outputs.logits, batch["label_batch"]["label"], reduction="sum"
-        )[0] / batch["label_batch"]["loss_denom"]
+            outputs.logits, output_data["label"], reduction="sum"
+        )[0] / batch_denom
         log["nll_loss"] = ce_loss
 
-        if "op_input_batch" in batch:     # on-policy scenario
-            outputs = model(**batch["op_input_batch"], output_hidden_states=True)
-            with torch.no_grad():
-                teacher_outputs = teacher_model(
-                    **batch["op_teacher_input_batch"], 
-                    output_hidden_states=True
-                )
-            kd_loss, log = self.compute_on_policy_dual_space_kd_loss_with_cma(
-                outputs, teacher_outputs, batch, distiller, log
-            )
-            batch_input = batch["op_input_batch"]
-        else:    # off-policy scenario
-            with torch.no_grad():
-                teacher_outputs = teacher_model(
-                    **batch["teacher_input_batch"], 
-                    output_hidden_states=True
-                )
-            kd_loss, log = self.compute_dual_space_kd_loss_with_cma(
-                outputs, teacher_outputs, batch, distiller, log
-            )
+        with torch.no_grad():
+            teacher_kwargs = {
+                "input_ids": teacher_input["input_ids"],
+                "attention_mask": teacher_input["attention_mask"],
+            }
+            if "position_ids" in teacher_input:
+                teacher_kwargs["position_ids"] = teacher_input["position_ids"]
+            teacher_outputs = teacher_model(**teacher_kwargs, output_hidden_states=True)
+        kd_loss, log = self.compute_dual_space_kd_loss_with_cma(
+            outputs, teacher_outputs, batch, distiller, log
+        )
 
         span_loss = 0.0
         if self.args.MTA_mode:
@@ -73,8 +84,8 @@ class DualSpaceWithCMA(VariousDivergence):
                                         add_special_tokens=False, return_tensors='pt')['offset_mapping']
             prases_offsets, spans_offsets, words_offsets = get_spans_offsets(input_texts, self.nlp, self.matcher)
 
-            span_loss = compute_overall_span_loss(distiller.mta_projector_list, batch_input['attention_mask'], 
-                                                outputs.hidden_states, teacher_outputs.hidden_states, 
+            span_loss = compute_overall_span_loss(distiller.mta_projector_list, batch_input['attention_mask'],
+                                                outputs.hidden_states, teacher_outputs.hidden_states,
                                                 offsets_mapping, prases_offsets, spans_offsets, words_offsets, self.args)
             span_loss = self.args.w_span_loss * span_loss
             log["span_loss"] = span_loss
@@ -82,7 +93,7 @@ class DualSpaceWithCMA(VariousDivergence):
         loss = (1.0 - self.kd_rate) * ce_loss + self.kd_rate * (kd_loss + span_loss)
         log["loss"] = loss
 
-        accuracy = self.compute_token_accuracy(logits, batch["label_batch"])
+        accuracy = self.compute_token_accuracy(logits, {"label": output_data["label"]})
         log["accuracy"] = accuracy
 
         logging_output = self.record_logging_output(logging_output, log)
@@ -204,13 +215,12 @@ class DualSpaceWithCMA(VariousDivergence):
             kd_loss = s2t_kd_loss
         else:
             kd_loss = t2s_kd_loss + t2s_ce_loss + s2t_kd_loss
-        
+
         log["t2s_kd_loss"] = t2s_kd_loss
         log["s2t_kd_loss"] = s2t_kd_loss
         log["kd_loss"] = kd_loss
 
         return kd_loss, log
-      
 
     def compute_on_policy_dual_space_kd_loss_with_cma(
         self, outputs, teacher_outputs, batch, distiller, log
@@ -385,4 +395,5 @@ class DualSpaceWithCMA(VariousDivergence):
         log["kd_loss"] = kd_loss
 
         return kd_loss, log
-    
+
+
