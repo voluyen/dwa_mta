@@ -167,9 +167,9 @@ class DualSpaceKDWithCMA(VariousDivergence):
             s2t_proj = stu_lmhead @ part_teacher_head_pinv
             stu_v_hiddens = hiddens @ s2t_proj
         else:
-            stu_v_hiddens = distiller.projectors["s2t"](hiddens).float()
+            stu_v_hiddens = distiller.projectors["s2t"](hiddens).to(hiddens)
 
-        tea_v_hiddens = distiller.projectors["t2s"](norm_teacher_hiddens + norm_tea_preds_embeds)
+        tea_v_hiddens = distiller.projectors["t2s"](norm_teacher_hiddens + norm_tea_preds_embeds).to(hiddens)
 
         align = stu_q_hiddens.matmul(tea_k_hiddens.transpose(-1, -2))
         align = align / math.sqrt(2 * teacher_hiddens.shape[-1])
@@ -289,19 +289,19 @@ class DualSpaceKDWithCMA(VariousDivergence):
             s2t_proj = stu_lmhead @ part_teacher_head_pinv
             stu_v_hiddens = hiddens @ s2t_proj
         else:
-            stu_v_hiddens = distiller.projectors["s2t"](hiddens).float()
+            stu_v_hiddens = distiller.projectors["s2t"](hiddens).to(hiddens)
 
-        tea_v_hiddens = distiller.projectors["t2s"](norm_teacher_hiddens + norm_tea_preds_embeds)
+        tea_v_hiddens = distiller.projectors["t2s"](norm_teacher_hiddens + norm_tea_preds_embeds).to(hiddens)
 
         align = stu_q_hiddens.matmul(tea_k_hiddens.transpose(-1, -2))
         align = align / math.sqrt(2 * teacher_hiddens.shape[-1])
         align_mask = pad_mask.float().unsqueeze(-1) * teacher_pad_mask.float().unsqueeze(1)
-       
+
         align = align + (1.0 - align_mask) * (-100000)
 
         # student space
-        t2s_weight = torch.softmax(align, -1).to(hiddens)      
-        t2s_hiddens = t2s_weight.matmul(tea_v_hiddens)  # n x m x m x d -> n x d
+        t2s_weight = torch.softmax(align, -1).to(hiddens)
+        t2s_hiddens = t2s_weight.matmul(tea_v_hiddens)
         t2s_logits = t2s_hiddens.matmul(
             distiller.student_model.lm_head.weight.detach().transpose(-1, -2)
         )  # n x d x d x V_stu -> n x V_stu  [bsz x seq-len x V_stu]

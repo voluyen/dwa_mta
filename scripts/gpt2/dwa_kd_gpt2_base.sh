@@ -138,4 +138,4 @@ CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
 # ${CMD}
 ${CMD} \
->> ${SAVE_PATH}/train.log 2>&1 &
+# >> ${SAVE_PATH}/train.log 2>&1 &
