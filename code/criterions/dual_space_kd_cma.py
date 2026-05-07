@@ -8,7 +8,7 @@ import spacy
 from spacy.matcher import Matcher
 from .span_utils import get_spans_offsets, compute_overall_span_loss
 
-class DualSpaceKDV2WithETA(VariousDivergence):
+class DualSpaceWithCMA(VariousDivergence):
     def __init__(self, args, padding_id=-100) -> None:
         super().__init__(args, padding_id=padding_id)
 
