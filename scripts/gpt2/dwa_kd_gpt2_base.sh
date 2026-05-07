@@ -15,14 +15,16 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
                   --master_port $MASTER_PORT"
 
 # model
-BASE_PATH=path_to_project
+BASE_PATH=.
 CKPT_TYPE="gpt2"
 CKPT_NAME="gpt2-base"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 # we use qwen-1.8b as the teacher with the different vocabulary from gpt2
 TEACHER_MODEL_TYPE="qwen"
 TEACHER_MODEL_NAME="Qwen1.5-1.8B"
-TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
+# TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
+TEACHER_MODEL_PATH="VoCuc/Qwen1.5_1.8B_SFT_Dolly"
+
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
@@ -63,7 +65,7 @@ PROJECTOR_CONFIG_PATH="${BASE_PATH}/configs/projector_config.json"
 # Initialize option string after variables are set
 OPTS=""
 OPTS+=" --dtw-gamma ${DTW_GAMMA}"
-OPTS+=" --wandb --wandb-project kd-experiments --wandb-run-name ${CKPT_NAME}_${TASK}"
+# wandb disabled
 # model
 OPTS+=" --base-path ${BASE_PATH}"
 OPTS+=" --model-type ${CKPT_TYPE}"

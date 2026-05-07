@@ -63,7 +63,7 @@ PROJECTOR_CONFIG_PATH="${BASE_PATH}/configs/projector_config.json"
 # Initialize option string after variables are set
 OPTS=""
 OPTS+=" --dtw-gamma ${DTW_GAMMA}"
-OPTS+=" --wandb --wandb-project kd-experiments --wandb-run-name ${CKPT_NAME}_${TASK}"
+# wandb disabled
 # model
 OPTS+=" --base-path ${BASE_PATH}"
 OPTS+=" --model-type ${CKPT_TYPE}"

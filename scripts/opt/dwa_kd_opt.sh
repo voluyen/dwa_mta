@@ -62,7 +62,7 @@ mkdir -p ${SAVE_PATH}
 OPTS=""
 # DTW and wandb parameters
 OPTS+=" --dtw-gamma ${DTW_GAMMA}"
-OPTS+=" --wandb --wandb-project DTW-Mistral --wandb-run-name ${CKPT_NAME}_${TASK}"
+# wandb disabled
 # model
 OPTS+=" --base-path ${BASE_PATH}"
 OPTS+=" --model-type ${CKPT_TYPE}"
