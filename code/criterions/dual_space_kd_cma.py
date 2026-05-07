@@ -209,9 +209,9 @@ class DualSpaceKDWithCMA(VariousDivergence):
         )
         s2t_kd_loss = (s2t_kd_loss * teacher_pad_mask).sum() / loss_denom
 
-        if self.args.only_stu_kd:
+        if getattr(self.args, "only_stu_kd", False):
             kd_loss = t2s_kd_loss + t2s_ce_loss
-        elif self.args.only_tea_kd:
+        elif getattr(self.args, "only_tea_kd", False):
             kd_loss = s2t_kd_loss
         else:
             kd_loss = t2s_kd_loss + t2s_ce_loss + s2t_kd_loss
@@ -384,9 +384,9 @@ class DualSpaceKDWithCMA(VariousDivergence):
         )
         s2t_kd_loss = (s2t_kd_loss * teacher_pad_mask).sum() / batch["op_label_batch"]["loss_denom"]
 
-        if self.args.only_stu_kd:
+        if getattr(self.args, "only_stu_kd", False):
             kd_loss = t2s_kd_loss + t2s_ce_loss
-        elif self.args.only_tea_kd:
+        elif getattr(self.args, "only_tea_kd", False):
             kd_loss = s2t_kd_loss
         else:
             kd_loss = t2s_kd_loss + t2s_ce_loss + s2t_kd_loss

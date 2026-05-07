@@ -183,6 +183,18 @@ def add_hp_args(parser: argparse.ArgumentParser):
     group.add_argument("--kl-orig-rate", type=float, default=1.0,
                        help='weight for KL divergence loss KL(p(y1_new|x) || p(y1|x)) to maintain original task performance')
 
+    group.add_argument("--only-stu-kd", action="store_true",
+                       help='only use student-space KD loss (t2s)')
+    group.add_argument("--only-tea-kd", action="store_true",
+                       help='only use teacher-space KD loss (s2t)')
+    group.add_argument("--MTA-mode", action="store_true",
+                       help='enable Multi-Token Alignment span loss')
+    group.add_argument("--w-span-loss", type=float, default=1.0,
+                       help='weight for MTA span loss')
+    group.add_argument("--student_layer_mapping", nargs='+', type=int, default=[-1])
+    group.add_argument("--teacher_layer_mapping", nargs='+', type=int, default=[-1])
+    group.add_argument("--split_layer_mapping", nargs='+', type=int, default=[0, 0, 0, 0])
+
     group.add_argument('--warmup-iters', type=int, default=0,
                        help='percentage of data to warmup on (.01 = 1% of all '
                        'training iters). Default 0.01')
