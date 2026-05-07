@@ -60,7 +60,7 @@ class DualSpaceKDWithCMA(VariousDivergence):
         logits = outputs.logits
         log = {}
         ce_loss = self.compute_cross_entropy_loss(
-            outputs.logits, output_data["label"], reduction="sum"
+            outputs.logits, output_data["label"]
         )[0] / batch_denom
         log["nll_loss"] = ce_loss
 
@@ -93,7 +93,7 @@ class DualSpaceKDWithCMA(VariousDivergence):
         loss = (1.0 - self.kd_rate) * ce_loss + self.kd_rate * (kd_loss + span_loss)
         log["loss"] = loss
 
-        accuracy = self.compute_token_accuracy(logits, {"label": output_data["label"]})
+        accuracy = self.compute_token_accuracy(logits, output_data["label"])
         log["accuracy"] = accuracy
 
         logging_output = self.record_logging_output(logging_output, log)
