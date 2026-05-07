@@ -96,8 +96,8 @@ class DualSpaceKDWithCMA(VariousDivergence):
         accuracy = self.compute_token_accuracy(logits, output_data["label"])
         log["accuracy"] = accuracy
 
-        logging_output = self.record_logging_output(logging_output, log)
-        return loss, logging_output
+        logging_output = self.record_logging_output(logging_output, batch_denom, log)
+        return loss / batch_denom, logging_output
 
     def compute_dual_space_kd_loss_with_cma(
         self, outputs, teacher_outputs, batch, distiller, log
@@ -156,19 +156,20 @@ class DualSpaceKDWithCMA(VariousDivergence):
         norm_tea_preds_embeds = tea_preds_embeds / tea_preds_embeds.std()
         norm_teacher_hiddens = teacher_hiddens / teacher_hiddens.std()
 
-        stu_q_hiddens = distiller.query_projector(stu_index_embeds).float()
+        stu_q_hiddens = distiller.projectors["query"](stu_index_embeds).float()
         tea_k_hiddens = norm_tea_index_embeds.float()
 
         # teacher space
-        if distiller.part_teacher_head_pinv is not None:
+        part_teacher_head_pinv = getattr(distiller, "part_teacher_head_pinv", None)
+        if part_teacher_head_pinv is not None:
             stu_lmhead = distiller.student_model.lm_head.weight.detach().transpose(0, 1)
             stu_lmhead = stu_lmhead[:, distiller.student_overlap_token_ids]
-            s2t_proj = stu_lmhead @ distiller.part_teacher_head_pinv
+            s2t_proj = stu_lmhead @ part_teacher_head_pinv
             stu_v_hiddens = hiddens @ s2t_proj
         else:
-            stu_v_hiddens = distiller.s2t_projectors(hiddens).float()  # n x d x d x D -> n x D
+            stu_v_hiddens = distiller.projectors["s2t"](hiddens).float()
 
-        tea_v_hiddens = distiller.t2s_projectors(norm_teacher_hiddens + norm_tea_preds_embeds)  # m x D x D x d -> m x d
+        tea_v_hiddens = distiller.projectors["t2s"](norm_teacher_hiddens + norm_tea_preds_embeds)
 
         align = stu_q_hiddens.matmul(tea_k_hiddens.transpose(-1, -2))
         align = align / math.sqrt(2 * teacher_hiddens.shape[-1])
@@ -176,12 +177,12 @@ class DualSpaceKDWithCMA(VariousDivergence):
         align = align + (1.0 - align_mask) * (-100000)
 
         # student space
-        t2s_weight = torch.softmax(align, -1).to(hiddens)      
-        t2s_hiddens = t2s_weight.matmul(tea_v_hiddens)  # n x m x m x d -> n x d
+        t2s_weight = torch.softmax(align, -1).to(hiddens)
+        t2s_hiddens = t2s_weight.matmul(tea_v_hiddens)
         t2s_logits = t2s_hiddens.matmul(
             distiller.student_model.lm_head.weight.detach().transpose(-1, -2)
-        )  # n x d x d x V_stu -> n x V_stu  [bsz x seq-len x V_stu]
-  
+        )
+
         t_preds = torch.where(teacher_pad_mask, t_preds, teacher_target)
 
         t2s_acc_mask = t2s_logits.argmax(-1).eq(target)
@@ -190,24 +191,23 @@ class DualSpaceKDWithCMA(VariousDivergence):
         log["t2s_acc"] = t2s_acc
         log["t2s_acc_ratio"] = t2s_acc_ratio
 
-        t2s_ce_loss = self.compute_cross_entropy_loss(
-            t2s_logits, target, reduction="sum"
-        )[0] / batch["label_batch"]["loss_denom"]
+        loss_denom = batch["label_batch"]["loss_denom"]
+        t2s_ce_loss = self.compute_cross_entropy_loss(t2s_logits, target)[0] / loss_denom
         t2s_kd_loss = self.dist_func(
             outputs.logits, t2s_logits.detach(), target, reduction="none"
         )
-        t2s_kd_loss = (t2s_kd_loss * pad_mask * t2s_acc_mask).sum() / batch["label_batch"]["loss_denom"]
+        t2s_kd_loss = (t2s_kd_loss * pad_mask * t2s_acc_mask).sum() / loss_denom
 
         log["t2s_ce_loss"] = t2s_ce_loss
 
         # teacher space
         s2t_weight = torch.softmax(align.transpose(-1, -2), -1).to(hiddens)
-        s2t_hiddens = s2t_weight.matmul(stu_v_hiddens)  # m x n x n x D -> m x D
+        s2t_hiddens = s2t_weight.matmul(stu_v_hiddens)
         s2t_logits = distiller.teacher_model.lm_head(s2t_hiddens)
         s2t_kd_loss = self.dist_func(
             s2t_logits, teacher_outputs.logits, teacher_target, reduction="none"
         )
-        s2t_kd_loss = (s2t_kd_loss * teacher_pad_mask).sum() / batch["label_batch"]["loss_denom"]
+        s2t_kd_loss = (s2t_kd_loss * teacher_pad_mask).sum() / loss_denom
 
         if self.args.only_stu_kd:
             kd_loss = t2s_kd_loss + t2s_ce_loss
@@ -278,19 +278,20 @@ class DualSpaceKDWithCMA(VariousDivergence):
         norm_tea_preds_embeds = tea_preds_embeds / tea_preds_embeds.std()
         norm_teacher_hiddens = teacher_hiddens / teacher_hiddens.std()
 
-        stu_q_hiddens = distiller.query_projector(stu_index_embeds).float()
+        stu_q_hiddens = distiller.projectors["query"](stu_index_embeds).float()
         tea_k_hiddens = norm_tea_index_embeds.float()
 
         # teacher space
-        if distiller.part_teacher_head_pinv is not None:
+        part_teacher_head_pinv = getattr(distiller, "part_teacher_head_pinv", None)
+        if part_teacher_head_pinv is not None:
             stu_lmhead = distiller.student_model.lm_head.weight.detach().transpose(0, 1)
             stu_lmhead = stu_lmhead[:, distiller.student_overlap_token_ids]
-            s2t_proj = stu_lmhead @ distiller.part_teacher_head_pinv
+            s2t_proj = stu_lmhead @ part_teacher_head_pinv
             stu_v_hiddens = hiddens @ s2t_proj
         else:
-            stu_v_hiddens = distiller.s2t_projectors(hiddens).float()  # n x d x d x D -> n x D
+            stu_v_hiddens = distiller.projectors["s2t"](hiddens).float()
 
-        tea_v_hiddens = distiller.t2s_projectors(norm_teacher_hiddens + norm_tea_preds_embeds)  # m x D x D x d -> m x d
+        tea_v_hiddens = distiller.projectors["t2s"](norm_teacher_hiddens + norm_tea_preds_embeds)
 
         align = stu_q_hiddens.matmul(tea_k_hiddens.transpose(-1, -2))
         align = align / math.sqrt(2 * teacher_hiddens.shape[-1])
@@ -360,7 +361,7 @@ class DualSpaceKDWithCMA(VariousDivergence):
 
         # calculate t2s_ce_loss only on aligned tokens from both sequences
         t2s_ce_loss = self.compute_cross_entropy_loss(
-            t2s_logits, t_preds_as_label, reduction="sum"
+            t2s_logits, t_preds_as_label
         )[0] / batch["op_label_batch"]["loss_denom"]
 
         t2s_acc_mask = t2s_logits.argmax(-1).eq(t_preds_as_label)
