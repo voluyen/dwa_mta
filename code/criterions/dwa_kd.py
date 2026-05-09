@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 from .various_divergence import VariousDivergence
 from .soft_dtw_cuda import SoftDTW
+from .span_utils import get_spans_offsets, compute_overall_span_loss
 
 
 class DWAKD(VariousDivergence):
@@ -10,7 +11,20 @@ class DWAKD(VariousDivergence):
         super().__init__(args, padding_id=padding_id)
         self.dtw_rate = args.dtw_rate
         if self.dtw_rate > 0:
-            self.dtw = SoftDTW(use_cuda=True, gamma=args.dtw_gamma)
+            self.dtw = SoftDTW(use_cuda=False, gamma=args.dtw_gamma)
+
+        if getattr(args, "MTA_mode", False):
+            import spacy
+            from spacy.matcher import Matcher
+            self.nlp = spacy.load("en_core_web_sm")
+            self.matcher = Matcher(self.nlp.vocab)
+            VERB_PHRASE_PATTERN = [
+                {"POS": "AUX", "OP": "*"},
+                {"POS": "ADV", "OP": "*"},
+                {"POS": "VERB", "OP": "+"},
+                {"POS": "ADV", "OP": "*"},
+            ]
+            self.matcher.add("VERB_PHRASE", [VERB_PHRASE_PATTERN])
         self.dtw_gamma_start = getattr(args, 'dtw_gamma_start', getattr(args, 'dtw_gamma', 2.0))
         self.dtw_gamma_end = getattr(args, 'dtw_gamma_end', 0.8)
         self.dtw_gamma_steps = getattr(args, 'dtw_gamma_steps', 3570)
@@ -96,7 +110,42 @@ class DWAKD(VariousDivergence):
             dtw_warmup_scale = 1.0
         weighted_dtw_loss = dtw_loss * dtw_warmup_scale
 
-        loss = self.ce_rate * weighted_ce_loss + self.kd_rate * weighted_kd_loss + self.dtw_rate * weighted_dtw_loss
+        span_loss = 0.0
+        if getattr(self.args, "MTA_mode", False):
+            s_tokenizer = distiller.student_tokenizer
+            t_tokenizer = distiller.teacher_tokenizers[distiller.teacher_model_type]
+            teacher_prefix = f"teacher_{distiller.teacher_model_type}_"
+            t_input_ids = input_data[f"{teacher_prefix}input_ids"]
+            t_attention_mask = input_data[f"{teacher_prefix}attention_mask"]
+
+            s_input_texts = s_tokenizer.batch_decode(input_data['input_ids'], skip_special_tokens=True)
+            t_input_texts = t_tokenizer.batch_decode(t_input_ids, skip_special_tokens=True)
+
+            s_offsets_mapping = s_tokenizer(
+                s_input_texts, return_offsets_mapping=True, padding=True,
+                add_special_tokens=False, return_tensors='pt'
+            )['offset_mapping']
+            t_offsets_mapping = t_tokenizer(
+                t_input_texts, return_offsets_mapping=True, padding=True,
+                add_special_tokens=False, return_tensors='pt'
+            )['offset_mapping']
+
+            spans_offsets, words_offsets = get_spans_offsets(
+                s_input_texts, self.nlp, self.matcher
+            )
+
+            span_loss = compute_overall_span_loss(
+                distiller.mta_projector_list,
+                input_data['attention_mask'], t_attention_mask,
+                outputs.logits, teacher_outputs.logits,
+                outputs.hidden_states, teacher_outputs.hidden_states,
+                s_offsets_mapping, t_offsets_mapping,
+                spans_offsets, words_offsets, self.args
+            )
+            span_loss = self.args.w_span_loss * span_loss
+            log["span_loss"] = span_loss
+
+        loss = self.ce_rate * weighted_ce_loss + self.kd_rate * (weighted_kd_loss + span_loss) + self.dtw_rate * weighted_dtw_loss
         log["loss"] = loss
         log["student_entropy_mean"] = entropy_weights.mean()
         log["student_entropy_std"] = entropy_weights.std()

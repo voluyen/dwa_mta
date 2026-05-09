@@ -40,7 +40,20 @@ class Distiller(nn.Module):
         if self.teacher_model and args.projector_config_path:
             self.set_and_load_existing_projectors()
             log_rank(f"projector structure: {self.projectors}")
-        
+
+        self.mta_projector_list = None
+        if self.teacher_model and getattr(args, "MTA_mode", False):
+            student_hidden_size = getattr(self.student_model.config, "n_embd",
+                                          getattr(self.student_model.config, "hidden_size", None))
+            teacher_hidden_size = getattr(self.teacher_model.config, "n_embd",
+                                          getattr(self.teacher_model.config, "hidden_size", None))
+            projector_list = nn.ModuleList()
+            for _ in range(len(args.teacher_layer_mapping)):
+                projector = nn.Linear(student_hidden_size, teacher_hidden_size).to(device).to(self.dtype)
+                projector_list.append(projector)
+            self.mta_projector_list = projector_list
+            log_rank(f"MTA projector list: {len(projector_list)} x Linear({student_hidden_size}, {teacher_hidden_size})")
+
         if args.teacher_to_student_token_mapping is not None:
             self.tea2stu_token_mapping = json.load(open(args.teacher_to_student_token_mapping))
             log_rank(f"Load teacher-to-student token mapping from {args.teacher_to_student_token_mapping}")
@@ -308,6 +321,12 @@ class Distiller(nn.Module):
                 optimizer.add_param_group({
                     "params": [p for b in self.projectors for p in self.projectors[b].parameters()],
                 })
+
+        if getattr(self, "mta_projector_list", None) is not None:
+            optimizer.add_param_group({
+                "params": list(self.mta_projector_list.parameters()),
+                "lr": self.args.projector_lr if self.args.projector_lr else 5e-4,
+            })
         return optimizer
 
     def forward(self, criterion, batch, logging_output, loss_denom):

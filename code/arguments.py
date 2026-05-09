@@ -194,6 +194,9 @@ def add_hp_args(parser: argparse.ArgumentParser):
     group.add_argument("--student_layer_mapping", nargs='+', type=int, default=[-1])
     group.add_argument("--teacher_layer_mapping", nargs='+', type=int, default=[-1])
     group.add_argument("--split_layer_mapping", nargs='+', type=int, default=[0, 0, 0, 0])
+    group.add_argument("--entropy-weight", action="store_true",
+                   help="weight span loss by teacher entropy")
+
 
     group.add_argument('--warmup-iters', type=int, default=0,
                        help='percentage of data to warmup on (.01 = 1% of all '

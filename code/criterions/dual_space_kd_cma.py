@@ -82,11 +82,12 @@ class DualSpaceKDWithCMA(VariousDivergence):
             input_texts = tokenizer.batch_decode(batch_input['input_ids'], skip_special_tokens=False)
             offsets_mapping = tokenizer(input_texts, return_offsets_mapping=True, padding=True,
                                         add_special_tokens=False, return_tensors='pt')['offset_mapping']
-            prases_offsets, spans_offsets, words_offsets = get_spans_offsets(input_texts, self.nlp, self.matcher)
+            spans_offsets, words_offsets = get_spans_offsets(input_texts, self.nlp, self.matcher)
 
             span_loss = compute_overall_span_loss(distiller.mta_projector_list, batch_input['attention_mask'],
+                                                outputs.logits, teacher_outputs.logits,
                                                 outputs.hidden_states, teacher_outputs.hidden_states,
-                                                offsets_mapping, prases_offsets, spans_offsets, words_offsets, self.args)
+                                                offsets_mapping, spans_offsets, words_offsets, self.args)
             span_loss = self.args.w_span_loss * span_loss
             log["span_loss"] = span_loss
 
