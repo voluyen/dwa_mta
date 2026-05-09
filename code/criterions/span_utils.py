@@ -1,30 +1,29 @@
-import torch
-import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_sequence
-
-
 import math
 import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
+@torch.no_grad()
 def compute_token_weights(hidden_state, attention_mask):
-    std = hidden_state.std(dim=-1, keepdim=True) + 1e-5
-    Q = hidden_state / std
-    K = hidden_state / std
-    scores = torch.matmul(Q, K.transpose(-1, -2)) / (hidden_state.size(-1) ** 0.5)
+    # Compute in float32: .std() on bf16 upcasts internally, causing dtype drift downstream
+    input_dtype = hidden_state.dtype
+    h = hidden_state.float()
+    std = h.std(dim=-1, keepdim=True) + 1e-5
+    Q = h / std
+    K = h / std
+    scores = torch.matmul(Q, K.transpose(-1, -2)) / (h.size(-1) ** 0.5)
 
-    mask = attention_mask.unsqueeze(1).expand(-1, scores.size(-2), -1)
+    mask = attention_mask.unsqueeze(1).expand(-1, scores.size(-2), -1).float()
     scores = scores.masked_fill(mask == 0, float('-inf'))
     diag_mask = torch.eye(scores.size(-1), device=scores.device, dtype=torch.bool)
     scores = scores.masked_fill(diag_mask.unsqueeze(0), float('-inf'))
 
-    attn_weights = F.softmax(scores, dim=-1)  # [1, L, L]
+    attn_weights = F.softmax(scores, dim=-1)  # [B, L, L]
     attn_weights = attn_weights * mask
-    attn_weights = attn_weights / attn_weights.sum(dim=-1, keepdim=True)
+    attn_weights = attn_weights / attn_weights.sum(dim=-1, keepdim=True).clamp(min=1e-9)
 
-    token_weights = attn_weights.mean(dim=1).squeeze(0)  # [L]
-    return token_weights.detach()
+    token_weights = attn_weights.mean(dim=1)  # [B, L]
+    return token_weights.to(input_dtype)
 
 def aggregate_spans_for_model(hidden_states, layer_weights, attention_mask, offsets_mapping, spans_offsets, entropy_weights=None):
     
