@@ -1,4 +1,6 @@
 .claude/
-model
-*/__pycache__/
+model_hub/
+__pycache__/
+**/__pycache__/
+*.pyc
 outputs/
