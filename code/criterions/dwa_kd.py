@@ -118,13 +118,17 @@ class DWAKD(VariousDivergence):
             t_attention_mask = input_data[f"{teacher_prefix}attention_mask"]
 
             device = input_data['input_ids'].device
+            s_seq_len = input_data['input_ids'].size(1)
+            t_seq_len = input_data[f"{teacher_prefix}input_ids"].size(1)
             input_texts = s_tokenizer.batch_decode(input_data['input_ids'], skip_special_tokens=True)
             s_offsets_mapping = s_tokenizer(
-                input_texts, return_offsets_mapping=True, padding=True,
+                input_texts, return_offsets_mapping=True,
+                padding='max_length', max_length=s_seq_len, truncation=True,
                 add_special_tokens=False, return_tensors='pt'
             )['offset_mapping'].to(device)
             t_offsets_mapping = t_tokenizer(
-                input_texts, return_offsets_mapping=True, padding=True,
+                input_texts, return_offsets_mapping=True,
+                padding='max_length', max_length=t_seq_len, truncation=True,
                 add_special_tokens=False, return_tensors='pt'
             )['offset_mapping'].to(device)
 
