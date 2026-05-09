@@ -1,1 +1,4 @@
 .claude/
+model
+*/__pycache__/
+outputs/
