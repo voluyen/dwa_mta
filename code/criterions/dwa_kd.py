@@ -115,23 +115,21 @@ class DWAKD(VariousDivergence):
             s_tokenizer = distiller.student_tokenizer
             t_tokenizer = distiller.teacher_tokenizers[distiller.teacher_model_type]
             teacher_prefix = f"teacher_{distiller.teacher_model_type}_"
-            t_input_ids = input_data[f"{teacher_prefix}input_ids"]
             t_attention_mask = input_data[f"{teacher_prefix}attention_mask"]
 
-            s_input_texts = s_tokenizer.batch_decode(input_data['input_ids'], skip_special_tokens=True)
-            t_input_texts = t_tokenizer.batch_decode(t_input_ids, skip_special_tokens=True)
-
+            device = input_data['input_ids'].device
+            input_texts = s_tokenizer.batch_decode(input_data['input_ids'], skip_special_tokens=True)
             s_offsets_mapping = s_tokenizer(
-                s_input_texts, return_offsets_mapping=True, padding=True,
+                input_texts, return_offsets_mapping=True, padding=True,
                 add_special_tokens=False, return_tensors='pt'
-            )['offset_mapping']
+            )['offset_mapping'].to(device)
             t_offsets_mapping = t_tokenizer(
-                t_input_texts, return_offsets_mapping=True, padding=True,
+                input_texts, return_offsets_mapping=True, padding=True,
                 add_special_tokens=False, return_tensors='pt'
-            )['offset_mapping']
+            )['offset_mapping'].to(device)
 
             spans_offsets, words_offsets = get_spans_offsets(
-                s_input_texts, self.nlp, self.matcher
+                input_texts, self.nlp, self.matcher
             )
 
             span_loss = compute_overall_span_loss(

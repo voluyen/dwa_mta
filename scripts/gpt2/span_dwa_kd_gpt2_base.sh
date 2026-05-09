@@ -21,7 +21,7 @@ CKPT_NAME="gpt2-base"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 # we use qwen-1.8b as the teacher with the different vocabulary from gpt2
 TEACHER_MODEL_TYPE="qwen"
-TEACHER_MODEL_NAME="Qwen1.5-1.8B"
+TEACHER_MODEL_NAME="Qwen1.5_1.8B_SFT_Dolly"
 TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
 
 # data
@@ -112,10 +112,12 @@ OPTS+=" --save-dir ${SAVE_PATH}"
 OPTS+=" --keep-best-n-checkpoints ${SAVE_BEST_N_CKPTS}"
 OPTS+=" --criterion ${CRITERION}"
 
-# MTA
-OPTS+=" --teacher_layer_mapping 24 36 48"
-OPTS+=" --student_layer_mapping 6 9 12"
-OPTS+=" --split_layer_mapping 0 1 3 3"
+#MTA
+OPTS+=" --MTA-mode"
+OPTS+=" --teacher_layer_mapping 6 12 18 24"
+OPTS+=" --student_layer_mapping 2 4 6 8"
+OPTS+=" --split_layer_mapping 0 1 4 4"
+OPTS+=" --w-span-loss 2.0"
 OPTS+=" --entropy-weight"
 
 # seed
