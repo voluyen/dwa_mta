@@ -59,14 +59,14 @@ def aggregate_spans_for_model(hidden_states, layer_weights, attention_mask, offs
     token_in_span_map = (offsets_start + 1 >= span_starts_exp) & (offsets_end <= span_ends_exp)
     token_in_span_map = token_in_span_map & attention_mask.unsqueeze(2).bool() 
     
-    A = token_in_span_map.transpose(1, 2).float() 
-    
-    weighted_hidden = hidden_states * layer_weights.unsqueeze(-1) 
-    span_sum = torch.bmm(A, weighted_hidden)               
-    weight_sum = torch.bmm(A, layer_weights.unsqueeze(-1)).squeeze(-1) 
-    
+    A = token_in_span_map.transpose(1, 2).to(dtype=hidden_states.dtype)
+
+    weighted_hidden = hidden_states * layer_weights.unsqueeze(-1)
+    span_sum = torch.bmm(A, weighted_hidden)
+    weight_sum = torch.bmm(A, layer_weights.unsqueeze(-1)).squeeze(-1)
+
     if entropy_weights is not None:
-        ent_weight_sum = torch.bmm(A, entropy_weights.unsqueeze(-1)).squeeze(-1)
+        ent_weight_sum = torch.bmm(A, entropy_weights.to(dtype=hidden_states.dtype).unsqueeze(-1)).squeeze(-1)
         span_lengths = A.sum(dim=-1).clamp(min=1e-5) 
         ent_weight_mean = ent_weight_sum / span_lengths 
         final_ent_weight = ent_weight_mean
