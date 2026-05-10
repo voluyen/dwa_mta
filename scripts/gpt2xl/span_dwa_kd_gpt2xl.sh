@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(0 1 2 3)
+GPUS=(0 1)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -15,39 +15,42 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
                   --master_port $MASTER_PORT"
 
 # model
-BASE_PATH=path_to_project
+BASE_PATH=.
 CKPT_TYPE="gpt2"
 CKPT_NAME="gpt2-xl"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 # we use qwen-1.8b as the teacher with the different vocabulary from gpt2
 TEACHER_MODEL_TYPE="qwen"
-TEACHER_MODEL_NAME="Qwen2.5-7B-Instruct"
+TEACHER_MODEL_NAME="Qwen2.5-7B-Instruct-Dolly-SFT"
 TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="dwa_kd"
 # hp
-BATCH_SIZE=4
+BATCH_SIZE=1
 LR=0.001
 GRAD_ACC=4
-EVAL_BATCH_SIZE=32
+EVAL_BATCH_SIZE=16
 EPOCH=10
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
 KD_TEMP=2.0
 DTW_GAMMA=2.0
+LORA_RANK=256
+LORA_ALPHA=8
+LORA_DROPOUT=0.1
 # distiller
 PROJECTOR_CONFIG_PATH="${BASE_PATH}/configs/projector_config.json"
-PROJECTOR_LR=0.0005
+PROJECTOR_LR=0.001
 # length
 MAX_LENGTH=512
 # runtime
 PRECISION="bf16"
 CRITERION="dwa_kd"
 KD_OBJ="skewed_reverse_kl"
-CONFIG="${KD_OBJ}-${PRECISION}"
+CONFIG="${KD_OBJ}-lora-rank=${LORA_RANK}-alpha=${LORA_ALPHA}-dropout=${LORA_DROPOUT}-${PRECISION}"
 SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_NAME}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
 SAVE_PATH="${BASE_PATH}/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
 SAVE_BEST_N_CKPTS=1
@@ -94,6 +97,10 @@ OPTS+=" --dtw-rate ${DTW_RATE}"
 OPTS+=" --ce-rate ${CE_RATE}"
 OPTS+=" --kd-temperature ${KD_TEMP}"
 OPTS+=" --kd-objective ${KD_OBJ}"
+OPTS+=" --peft lora"
+OPTS+=" --peft-lora-r ${LORA_RANK}"
+OPTS+=" --peft-lora-alpha ${LORA_ALPHA}"
+OPTS+=" --peft-lora-dropout ${LORA_DROPOUT}"
 # distiller
 OPTS+=" --projector-lr ${PROJECTOR_LR}"
 OPTS+=" --projector-config-path ${PROJECTOR_CONFIG_PATH}"
@@ -104,18 +111,20 @@ OPTS+=" --max-prompt-length 256"
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
 OPTS+=" --eval-gen"
-OPTS+=" --save-interval 10"
+OPTS+=" --save-interval 5"
 OPTS+=" --eval-interval 1"
 OPTS+=" --log-interval 50"
 OPTS+=" --save-dir ${SAVE_PATH}"
 OPTS+=" --keep-best-n-checkpoints ${SAVE_BEST_N_CKPTS}"
 OPTS+=" --criterion ${CRITERION}"
 
-# MTA
-OPTS+=" --teacher_layer_mapping 24 36 48"
-OPTS+=" --student_layer_mapping 6 9 12"
-OPTS+=" --split_layer_mapping 0 1 3 3"
-OPTS+=" --entropy-weight"
+#MTA
+OPTS+=" --MTA-mode"
+OPTS+=" --teacher_layer_mapping 8 12 16 20 24 28"
+OPTS+=" --student_layer_mapping 8 16 24 32 40 48"
+OPTS+=" --split_layer_mapping 0 1 6 6"
+OPTS+=" --w-span-loss 2.0"
+# OPTS+=" --entropy-weight"
 
 # seed
 OPTS+=" --seed ${SEED}"
@@ -143,4 +152,4 @@ CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
 # ${CMD}
 ${CMD} \
->> ${SAVE_PATH}/train.log 2>&1 &
+>> ${SAVE_PATH}/train.log 2>&1

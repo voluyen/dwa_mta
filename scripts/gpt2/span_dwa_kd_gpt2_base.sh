@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(1)
+GPUS=(0 1)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -31,9 +31,9 @@ TASK="dwa_kd"
 # hp
 BATCH_SIZE=4
 LR=0.0005
-GRAD_ACC=4
-EVAL_BATCH_SIZE=32
-EPOCH=5
+GRAD_ACC=1
+EVAL_BATCH_SIZE=64
+EPOCH=10
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
@@ -41,7 +41,7 @@ KD_TEMP=2.0
 DTW_GAMMA=2.0
 # distiller
 PROJECTOR_CONFIG_PATH="${BASE_PATH}/configs/projector_config.json"
-PROJECTOR_LR=0.0001
+PROJECTOR_LR=0.001
 # length
 MAX_LENGTH=512
 # runtime
@@ -118,7 +118,7 @@ OPTS+=" --teacher_layer_mapping 6 12 18 24"
 OPTS+=" --student_layer_mapping 2 4 6 8"
 OPTS+=" --split_layer_mapping 0 1 4 4"
 OPTS+=" --w-span-loss 2.0"
-OPTS+=" --entropy-weight"
+# OPTS+=" --entropy-weight"
 
 # seed
 OPTS+=" --seed ${SEED}"

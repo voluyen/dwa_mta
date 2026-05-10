@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(0)
+GPUS=(0 1)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -21,17 +21,17 @@ CKPT_NAME="gpt2-medium"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 # we use qwen-1.8b as the teacher with the different vocabulary from gpt2
 TEACHER_MODEL_TYPE="qwen"
-TEACHER_MODEL_NAME="Qwen1.5-1.8B"
+TEACHER_MODEL_NAME="Qwen1.5_1.8B_SFT_Dolly"
 TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="dwa_kd"
 # hp
-BATCH_SIZE=16
+BATCH_SIZE=4
 LR=0.0005
 GRAD_ACC=1
-EVAL_BATCH_SIZE=32
+EVAL_BATCH_SIZE=64
 EPOCH=10
 DTW_RATE=0.2
 CE_RATE=0.5
@@ -40,7 +40,7 @@ KD_TEMP=2.0
 DTW_GAMMA=2.0
 # distiller
 PROJECTOR_CONFIG_PATH="${BASE_PATH}/configs/projector_config.json"
-PROJECTOR_LR=0.0001
+PROJECTOR_LR=0.001
 # length
 MAX_LENGTH=512
 # runtime
@@ -117,7 +117,7 @@ OPTS+=" --teacher_layer_mapping 9 12 15 18 21 24"
 OPTS+=" --student_layer_mapping 9 12 15 18 21 24"
 OPTS+=" --split_layer_mapping 0 1 6 6"
 OPTS+=" --w-span-loss 2.0"
-OPTS+=" --entropy-weight"
+# OPTS+=" --entropy-weight"
 
 # seed
 OPTS+=" --seed ${SEED}"
@@ -144,4 +144,4 @@ CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
 # ${CMD}
 ${CMD} \
->> ${SAVE_PATH}/train.log 2>&1 &
+>> ${SAVE_PATH}/train.log 2>&1

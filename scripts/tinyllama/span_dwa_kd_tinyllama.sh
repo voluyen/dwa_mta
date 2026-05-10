@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(0 1 2 3)
+GPUS=(0 1)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -15,14 +15,13 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
                   --master_port $MASTER_PORT"
 
 # model
-BASE_PATH=path_to_project
+BASE_PATH=.
 CKPT_TYPE="tinyllama"
 CKPT_NAME="tinyllama-1.1b-3T"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 TEACHER_MODEL_TYPE="mistral"
-TEACHER_MODEL_NAME="Mistral-7b-v0.1"
+TEACHER_MODEL_NAME="Mistral7B_Dolly_SFT"
 TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
-TEACHER_PEFT_PATH="path_to_teacher_sft_ckpt"
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
@@ -30,7 +29,7 @@ TASK="dwa_kd"
 # hp
 BATCH_SIZE=1
 LR=0.001
-GRAD_ACC=32
+GRAD_ACC=4
 EVAL_BATCH_SIZE=16
 EPOCH=10
 DTW_RATE=0.2
@@ -109,18 +108,20 @@ OPTS+=" --max-prompt-length 256"
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
 OPTS+=" --eval-gen"
-OPTS+=" --save-interval 10"
+OPTS+=" --save-interval 5"
 OPTS+=" --eval-interval 1"
 OPTS+=" --log-interval 50"
 OPTS+=" --save-dir ${SAVE_PATH}"
 OPTS+=" --keep-best-n-checkpoints ${SAVE_BEST_N_CKPTS}"
 OPTS+=" --criterion ${CRITERION}"
 
-# MTA
-OPTS+=" --teacher_layer_mapping 24 36 48"
-OPTS+=" --student_layer_mapping 6 9 12"
-OPTS+=" --split_layer_mapping 0 1 3 3"
-OPTS+=" --entropy-weight"
+#MTA
+OPTS+=" --MTA-mode"
+OPTS+=" --teacher_layer_mapping 8 14 20 26 32"
+OPTS+=" --student_layer_mapping 6 10 14 18 22"
+OPTS+=" --split_layer_mapping 0 1 5 5"
+OPTS+=" --w-span-loss 2.0"
+# OPTS+=" --entropy-weight"
 
 # seed
 OPTS+=" --seed ${SEED}"
@@ -147,4 +148,4 @@ export PYTHONPATH=${BASE_PATH}
 CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
 ${CMD} \
->> ${SAVE_PATH}/train.log 2>&1 &
+>> ${SAVE_PATH}/train.log 2>&1
