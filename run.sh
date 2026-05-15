@@ -1,7 +1,7 @@
 set -e
-bash download_model.sh
-python -m pip install -r requirements.txt
-mkdir -p /mnt/distillm-2/outputs
+# bash download_model.sh
+# python -m pip install -r requirements.txt
+# mkdir -p /mnt/distillm-2/outputs
 
 # echo "Training DWA-KD for GPT2-Base..."
 # bash scripts/gpt2/span_dwa_kd_gpt2_base.sh
