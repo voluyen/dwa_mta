@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(0 1)
+GPUS=(0)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -28,7 +28,7 @@ DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="dwa_kd"
 # hp
-BATCH_SIZE=4
+BATCH_SIZE=8
 LR=0.0005
 GRAD_ACC=1
 EVAL_BATCH_SIZE=64
@@ -113,8 +113,8 @@ OPTS+=" --criterion ${CRITERION}"
 
 # MTA
 OPTS+=" --MTA-mode"
-OPTS+=" --teacher_layer_mapping 9 12 15 18 21 24"
-OPTS+=" --student_layer_mapping 9 12 15 18 21 24"
+OPTS+=" --teacher_layer_mapping 14 16 18 20 22 24"
+OPTS+=" --student_layer_mapping 14 16 18 20 22 24"
 OPTS+=" --split_layer_mapping 0 1 6 6"
 OPTS+=" --w-span-loss 2.0"
 # OPTS+=" --entropy-weight"
