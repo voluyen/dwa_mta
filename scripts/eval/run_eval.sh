@@ -1,11 +1,11 @@
 #!/bin/bash
 GPUS=(0)
-WORK_DIR="/home/hungpv/projects/lab/DTW-v2"
+WORK_DIR="."
 MASTER_PORT=66$(($RANDOM%90+10))
 DEVICE=$(IFS=,; echo "${GPUS[*]}")
 
-CKPT_PATH=${1}
-BATCH_SIZE=${2-32}
+CKPT_PATH="${WORK_DIR}/model_hub/gpt2/gpt2-base"
+BATCH_SIZE=128
 
 for seed in 10 20 30 40 50
 do

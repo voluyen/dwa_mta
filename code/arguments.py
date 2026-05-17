@@ -196,6 +196,8 @@ def add_hp_args(parser: argparse.ArgumentParser):
     group.add_argument("--split_layer_mapping", nargs='+', type=int, default=[0, 0, 0, 0])
     group.add_argument("--entropy-weight", action="store_true",
                    help="weight span loss by teacher entropy")
+    group.add_argument("--no-weight", action="store_true",
+                   help="disable token importance + span weighting; uniform mean pooling and equal-weighted spans")
 
 
     group.add_argument('--warmup-iters', type=int, default=0,

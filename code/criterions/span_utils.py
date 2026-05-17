@@ -116,17 +116,22 @@ def compute_hidden_span_loss(projector, s_span_repr, t_span_repr, valid_span_mas
     return span_rel_loss
 
 
-def get_span_loss(projectors, s_att_mask, t_att_mask, s_hidden_states, t_hidden_states, 
-                  s_offsets_mapping, t_offsets_mapping, spans_offsets, 
-                  teacher_layer_mapping, student_layer_mapping, w_t_entropy=None):
-    
+def get_span_loss(projectors, s_att_mask, t_att_mask, s_hidden_states, t_hidden_states,
+                  s_offsets_mapping, t_offsets_mapping, spans_offsets,
+                  teacher_layer_mapping, student_layer_mapping, w_t_entropy=None,
+                  no_weight=False):
+
     final_loss = 0.0
     for i, (s_idx, t_idx, projector) in enumerate(zip(student_layer_mapping, teacher_layer_mapping, projectors)):
         s_hidden = s_hidden_states[s_idx]
         t_hidden = t_hidden_states[t_idx]
-        
-        s_weights = compute_token_weights(s_hidden, s_att_mask) 
-        t_weights = compute_token_weights(t_hidden, t_att_mask) 
+
+        if no_weight:
+            s_weights = s_att_mask.to(s_hidden.dtype)
+            t_weights = t_att_mask.to(t_hidden.dtype)
+        else:
+            s_weights = compute_token_weights(s_hidden, s_att_mask)
+            t_weights = compute_token_weights(t_hidden, t_att_mask)
         
         s_span_repr, _, _, valid_mask = aggregate_spans_for_model(s_hidden, s_weights, s_att_mask, s_offsets_mapping, spans_offsets)
         t_span_repr, t_weight_sum, t_ent_weight_sum, _ = aggregate_spans_for_model(t_hidden, t_weights, t_att_mask, t_offsets_mapping, spans_offsets, w_t_entropy)
@@ -134,7 +139,10 @@ def get_span_loss(projectors, s_att_mask, t_att_mask, s_hidden_states, t_hidden_
         if s_span_repr is None or t_span_repr is None:
             continue
             
-        w_sum = t_ent_weight_sum if w_t_entropy is not None else t_weight_sum
+        if no_weight:
+            w_sum = valid_mask.to(t_span_repr.dtype)
+        else:
+            w_sum = t_ent_weight_sum if w_t_entropy is not None else t_weight_sum
         span_loss = compute_hidden_span_loss(projector, s_span_repr, t_span_repr, valid_mask, w_sum)
         final_loss += span_loss
 
@@ -156,14 +164,16 @@ def compute_overall_span_loss(projectors, s_att_mask, t_att_mask, s_logits, t_lo
     word_projectors = projectors[args.split_layer_mapping[0]:args.split_layer_mapping[1]]
     
     word_loss = get_span_loss(word_projectors, s_att_mask, t_att_mask, s_hidden_states, t_hidden_states, 
-                              s_offsets_mapping, t_offsets_mapping, words_offsets, t_word_mapping, s_word_mapping, w_t_entropy)
+                              s_offsets_mapping, t_offsets_mapping, words_offsets, t_word_mapping, s_word_mapping, w_t_entropy,
+                              no_weight=getattr(args, "no_weight", False))
     
     s_span_mapping = args.student_layer_mapping[args.split_layer_mapping[1]:args.split_layer_mapping[2]]
     t_span_mapping = args.teacher_layer_mapping[args.split_layer_mapping[1]:args.split_layer_mapping[2]]
     span_projectors = projectors[args.split_layer_mapping[1]:args.split_layer_mapping[2]]
     
-    span_loss = get_span_loss(span_projectors, s_att_mask, t_att_mask, s_hidden_states, t_hidden_states, 
-                              s_offsets_mapping, t_offsets_mapping, spans_offsets, t_span_mapping, s_span_mapping, w_t_entropy)
+    span_loss = get_span_loss(span_projectors, s_att_mask, t_att_mask, s_hidden_states, t_hidden_states,
+                              s_offsets_mapping, t_offsets_mapping, spans_offsets, t_span_mapping, s_span_mapping, w_t_entropy,
+                              no_weight=getattr(args, "no_weight", False))
     
     overall_loss = (word_loss + span_loss) / len(args.student_layer_mapping)
     return overall_loss
