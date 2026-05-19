@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(0)
+GPUS=(6 7)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -30,11 +30,11 @@ DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="dwa_kd"
 # hp
-BATCH_SIZE=2
+BATCH_SIZE=4
 LR=0.0005
-GRAD_ACC=16
+GRAD_ACC=1
 EVAL_BATCH_SIZE=32
-EPOCH=10
+EPOCH=20
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
@@ -47,7 +47,7 @@ PROJECTOR_LR=0.001
 MAX_LENGTH=512
 # runtime
 PRECISION="bf16"
-CRITERION="dual_space_kd_with_cma"
+CRITERION="dwa_kd"
 KD_OBJ="skewed_reverse_kl"
 CONFIG="${KD_OBJ}-${PRECISION}"
 SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_NAME}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
@@ -138,4 +138,4 @@ CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
 # ${CMD}
 ${CMD} \
-# >> ${SAVE_PATH}/train.log 2>&1 &
+>> ${SAVE_PATH}/train.log 2>&1

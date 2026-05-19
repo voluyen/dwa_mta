@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(0 1)
+GPUS=(6 7)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -28,11 +28,11 @@ DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="dwa_kd"
 # hp
-BATCH_SIZE=1
+BATCH_SIZE=4
 LR=0.001
-GRAD_ACC=4
+GRAD_ACC=1
 EVAL_BATCH_SIZE=4
-EPOCH=10
+EPOCH=15
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
@@ -108,7 +108,7 @@ OPTS+=" --max-prompt-length 256"
 # runtime
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
-OPTS+=" --eval-gen"
+# OPTS+=" --eval-gen"
 OPTS+=" --save-interval 5"
 OPTS+=" --eval-interval 1"
 OPTS+=" --log-interval 50"
