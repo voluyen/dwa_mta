@@ -203,7 +203,7 @@ def get_spans_offsets(texts, nlp, matcher):
     spans = []
     words = []
 
-    for doc in nlp.pipe(texts, disable=disabled_components, n_process=4):
+    for doc in nlp.pipe(texts, disable=disabled_components, n_process=1):
         spans_with_offsets = []
         
         vps = matcher(doc)
