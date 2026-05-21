@@ -26,20 +26,20 @@ bash download_model.sh
 echo "Training Span DWA-KD for GPT2-Base..."
 bash scripts/gpt2/span_dwa_kd_gpt2_base.sh
 
-# echo "Training Span DWA-KD for GPT2-Medium..."
-# bash scripts/gpt2_medium/span_dwa_kd_gpt2_medium.sh
+echo "Training Span DWA-KD for GPT2-Medium..."
+bash scripts/gpt2_medium/span_dwa_kd_gpt2_medium.sh
 
-# echo "Training Span DWA-KD for TinyLlama..."
-# bash scripts/tinyllama/span_dwa_kd_tinyllama.sh
+echo "Training Span DWA-KD for TinyLlama..."
+bash scripts/tinyllama/span_dwa_kd_tinyllama.sh
 
-# echo "Training Span DWA-KD for OPT..."
-# bash scripts/opt/span_dwa_kd_opt.sh
+echo "Training Span DWA-KD for OPT..."
+bash scripts/opt/span_dwa_kd_opt.sh
 
-# echo "Training DWA-KD for GPT2-Base..."
-# bash scripts/gpt2/dwa_kd_gpt2_base.sh
+echo "Training DWA-KD for GPT2-Base..."
+bash scripts/gpt2/dwa_kd_gpt2_base.sh
 
-# echo "Training Span DWA-KD word level for GPT2-base..."
-# bash scripts/ablation/span_dwa_kd_gpt2_base_word_level.sh
+echo "Training Span DWA-KD word level for GPT2-base..."
+bash scripts/ablation/span_dwa_kd_gpt2_base_word_level.sh
 
-# echo "Training Span DWA-KD phrase level for GPT2-base..."
-# bash scripts/ablation/span_dwa_kd_gpt2_base_phrase_level.sh
+echo "Training Span DWA-KD phrase level for GPT2-base..."
+bash scripts/ablation/span_dwa_kd_gpt2_base_phrase_level.sh
