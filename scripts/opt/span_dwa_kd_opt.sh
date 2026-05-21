@@ -26,7 +26,7 @@ TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
-TASK="dwa_kd"
+TASK="span_dwa_kd"
 # hp
 BATCH_SIZE=4
 LR=0.001
