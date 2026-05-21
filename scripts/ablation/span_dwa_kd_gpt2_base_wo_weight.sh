@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(6 7)
+GPUS=(0)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -18,21 +18,21 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
 BASE_PATH=.
 CKPT_TYPE="gpt2"
 CKPT_NAME="gpt2-base"
-CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
+CKPT_PATH="./model_hub/gpt2-base"
 # we use qwen-1.8b as the teacher with the different vocabulary from gpt2
 TEACHER_MODEL_TYPE="qwen"
 TEACHER_MODEL_NAME="Qwen1.5_1.8B_SFT_Dolly"
-TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
+TEACHER_MODEL_PATH="./model_hub/Qwen1.5_1.8B_SFT_Dolly"
 
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
-TASK="dwa_kd"
+TASK="dwa_kd_wo_weight"
 # hp
 BATCH_SIZE=4
 LR=0.0005
 GRAD_ACC=1
-EVAL_BATCH_SIZE=64
+EVAL_BATCH_SIZE=128
 EPOCH=20
 DTW_RATE=0.2
 CE_RATE=0.5
@@ -50,7 +50,7 @@ CRITERION="dwa_kd"
 KD_OBJ="skewed_reverse_kl"
 CONFIG="${KD_OBJ}-${PRECISION}"
 SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_NAME}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
-SAVE_PATH="${BASE_PATH}/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
+SAVE_PATH="/mnt/model-hub/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}"
 SAVE_BEST_N_CKPTS=1
 # seed
 SEED=10
@@ -118,6 +118,7 @@ OPTS+=" --teacher_layer_mapping 6 12 18 24"
 OPTS+=" --student_layer_mapping 2 4 6 8"
 OPTS+=" --split_layer_mapping 0 1 4 4"
 OPTS+=" --w-span-loss 2.0"
+OPTS+=" --no-weight"
 # OPTS+=" --entropy-weight"
 
 # seed
@@ -145,5 +146,4 @@ export PYTHONPATH=${BASE_PATH}
 CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
 # ${CMD}
-${CMD} \
->> ${SAVE_PATH}/train.log 2>&1
+${CMD} 2>&1 | tee -a ${SAVE_PATH}/train.log

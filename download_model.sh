@@ -1,3 +1,7 @@
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
 log "Preparing student models under model_hub/"
 
 # Silence interactive prompts from huggingface_hub (update check, telemetry).
@@ -70,11 +74,11 @@ download_model() {
 }
 
 # Student checkpoints referenced by scripts/dolly/*/run_*.sh
-# download_model "gpt2"                      gpt2      gpt2-base
-# download_model "gpt2-medium"               gpt2      gpt2-medium
-# download_model "gpt2-xl"                   gpt2      gpt2-xl
-# download_model "facebook/opt-2.7b"         opt       opt-2.7b
+download_model "gpt2"                      gpt2      gpt2-base
+download_model "gpt2-medium"               gpt2      gpt2-medium
+download_model "gpt2-xl"                   gpt2      gpt2-xl
+download_model "facebook/opt-2.7b"         opt       opt-2.7b
 download_model "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T"  tinyllama tinyllama-1.1b-3T
-# download_model "VoCuc/Qwen1.5_1.8B_SFT_Dolly" qwen Qwen1.5_1.8B_SFT_Dolly
-# download_model "VoCuc/Qwen2.5-7B-Instruct-Dolly-SFT" qwen Qwen2.5-7B-Instruct-Dolly-SFT
+download_model "VoCuc/Qwen1.5_1.8B_SFT_Dolly" qwen Qwen1.5_1.8B_SFT_Dolly
+download_model "VoCuc/Qwen2.5-7B-Instruct-Dolly-SFT" qwen Qwen2.5-7B-Instruct-Dolly-SFT
 download_model "VoCuc/Mistral7B_Dolly_SFT" mistral Mistral7B_Dolly_SFT
