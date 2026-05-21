@@ -139,6 +139,8 @@ OPTS+=" --temperature 1.0"
 
 
 export NCCL_DEBUG=""
+export NCCL_NVLS_ENABLE=0
+export NCCL_P2P_DISABLE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONPATH=${BASE_PATH}
