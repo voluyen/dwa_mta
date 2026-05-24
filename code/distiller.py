@@ -309,24 +309,32 @@ class Distiller(nn.Module):
         if hasattr(self, "projectors"):
             if self.args.projector_lr:
                 pretrained_proj = self.args.pretrained_projector.split(",") if self.args.pretrained_projector is not None else []
-                optimizer.add_param_group({
-                    "params": [p for b in self.projectors if b not in pretrained_proj for p in self.projectors[b].parameters()],
-                    "lr": self.args.projector_lr
-                })
-                optimizer.add_param_group({
-                    "params": [p for b in self.projectors if b in pretrained_proj for p in self.projectors[b].parameters()],
-                    "lr": self.args.pretrained_projector_lr
-                })
+                new_proj_params = [p for b in self.projectors if b not in pretrained_proj for p in self.projectors[b].parameters()]
+                pre_proj_params = [p for b in self.projectors if b in pretrained_proj for p in self.projectors[b].parameters()]
+                if new_proj_params:
+                    optimizer.add_param_group({
+                        "params": new_proj_params,
+                        "lr": self.args.projector_lr
+                    })
+                if pre_proj_params:
+                    optimizer.add_param_group({
+                        "params": pre_proj_params,
+                        "lr": self.args.pretrained_projector_lr
+                    })
             else:
-                optimizer.add_param_group({
-                    "params": [p for b in self.projectors for p in self.projectors[b].parameters()],
-                })
+                proj_params = [p for b in self.projectors for p in self.projectors[b].parameters()]
+                if proj_params:
+                    optimizer.add_param_group({
+                        "params": proj_params,
+                    })
 
         if getattr(self, "mta_projector_list", None) is not None:
-            optimizer.add_param_group({
-                "params": list(self.mta_projector_list.parameters()),
-                "lr": self.args.projector_lr if self.args.projector_lr else 5e-4,
-            })
+            mta_params = list(self.mta_projector_list.parameters())
+            if mta_params:
+                optimizer.add_param_group({
+                    "params": mta_params,
+                    "lr": self.args.projector_lr if self.args.projector_lr else 5e-4,
+                })
         return optimizer
 
     def forward(self, criterion, batch, logging_output, loss_denom):
