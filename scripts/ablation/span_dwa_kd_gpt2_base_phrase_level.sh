@@ -1,9 +1,9 @@
 #! /bin/bash
-GPUS=(2 3)
+GPUS=(0)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
-MASTER_PORT=66$(($RANDOM%90+10))
+MASTER_PORT=6630
 NNODES=1
 NODE_RANK=0
 GPUS_PER_NODE=${#GPUS[@]}
@@ -18,18 +18,18 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
 BASE_PATH=.
 CKPT_TYPE="gpt2"
 CKPT_NAME="gpt2-base"
-CKPT_PATH="./model_hub/gpt2-base"
+CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 # we use qwen-1.8b as the teacher with the different vocabulary from gpt2
 TEACHER_MODEL_TYPE="qwen"
 TEACHER_MODEL_NAME="Qwen1.5_1.8B_SFT_Dolly"
-TEACHER_MODEL_PATH="./model-hub/Qwen1.5_1.8B_SFT_Dolly"
+TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
 
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="dwa_kd_phrase_level"
 # hp
-BATCH_SIZE=4
+BATCH_SIZE=8
 LR=0.0005
 GRAD_ACC=1
 EVAL_BATCH_SIZE=128
@@ -50,7 +50,7 @@ CRITERION="dwa_kd"
 KD_OBJ="skewed_reverse_kl"
 CONFIG="${KD_OBJ}-${PRECISION}"
 SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_NAME}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
-SAVE_PATH="/mnt/model-hub/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}"
+SAVE_PATH="${BASE_PATH}/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
 SAVE_BEST_N_CKPTS=5
 # seed
 SEED=10
@@ -105,7 +105,7 @@ OPTS+=" --max-prompt-length 256"
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
 # OPTS+=" --eval-gen"
-OPTS+=" --save-interval 5"
+OPTS+=" --save-interval 1"
 OPTS+=" --eval-interval 1"
 OPTS+=" --log-interval 50"
 OPTS+=" --save-dir ${SAVE_PATH}"
@@ -114,9 +114,9 @@ OPTS+=" --criterion ${CRITERION}"
 
 #MTA
 OPTS+=" --MTA-mode"
-OPTS+=" --teacher_layer_mapping 6 12 18 24"
-OPTS+=" --student_layer_mapping 2 4 6 8"
-OPTS+=" --split_layer_mapping 0 0 4 4"
+OPTS+=" --teacher_layer_mapping 12 18 24"
+OPTS+=" --student_layer_mapping 6 9 12"
+OPTS+=" --split_layer_mapping 0 0 3 3"
 OPTS+=" --w-span-loss 2.0"
 # OPTS+=" --no-weight"
 # OPTS+=" --entropy-weight"

@@ -1,9 +1,9 @@
 #! /bin/bash
-GPUS=(2 3)
+GPUS=(1)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
-MASTER_PORT=66$(($RANDOM%90+10))
+MASTER_PORT=6660
 NNODES=1
 NODE_RANK=0
 GPUS_PER_NODE=${#GPUS[@]}
@@ -27,10 +27,10 @@ DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="span_dwa_kd"
 # hp
-BATCH_SIZE=4
+BATCH_SIZE=8
 LR=0.001
 GRAD_ACC=1
-EVAL_BATCH_SIZE=128
+EVAL_BATCH_SIZE=64
 EPOCH=15
 DTW_RATE=0.2
 CE_RATE=0.5
@@ -108,7 +108,7 @@ OPTS+=" --max-prompt-length 256"
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
 # OPTS+=" --eval-gen"
-OPTS+=" --save-interval 5"
+OPTS+=" --save-interval 1"
 OPTS+=" --eval-interval 1"
 OPTS+=" --log-interval 50"
 OPTS+=" --save-dir ${SAVE_PATH}"

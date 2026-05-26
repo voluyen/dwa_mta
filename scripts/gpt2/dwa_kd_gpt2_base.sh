@@ -1,9 +1,9 @@
 #! /bin/bash
-GPUS=(2 3)
+GPUS=(1)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
-MASTER_PORT=66$(($RANDOM%90+10))
+MASTER_PORT=6650
 NNODES=1
 NODE_RANK=0
 GPUS_PER_NODE=${#GPUS[@]}
@@ -21,16 +21,15 @@ CKPT_NAME="gpt2-base"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 # we use qwen-1.8b as the teacher with the different vocabulary from gpt2
 TEACHER_MODEL_TYPE="qwen"
-TEACHER_MODEL_NAME="Qwen1.5-1.8B"
-# TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
-TEACHER_MODEL_PATH="VoCuc/Qwen1.5_1.8B_SFT_Dolly"
+TEACHER_MODEL_NAME="Qwen1.5_1.8B_SFT_Dolly"
+TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
 
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="dwa_kd"
 # hp
-BATCH_SIZE=4
+BATCH_SIZE=8
 LR=0.0005
 GRAD_ACC=1
 EVAL_BATCH_SIZE=128
@@ -105,8 +104,8 @@ OPTS+=" --max-prompt-length 256"
 # runtime
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
-OPTS+=" --eval-gen"
-OPTS+=" --save-interval 10"
+# OPTS+=" --eval-gen"
+OPTS+=" --save-interval 1"
 OPTS+=" --eval-interval 1"
 OPTS+=" --log-interval 50"
 OPTS+=" --save-dir ${SAVE_PATH}"

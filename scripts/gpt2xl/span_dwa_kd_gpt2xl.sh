@@ -1,9 +1,9 @@
 #! /bin/bash
-GPUS=(0 1)
+GPUS=(2)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
-MASTER_PORT=66$(($RANDOM%90+10))
+MASTER_PORT=6670
 NNODES=1
 NODE_RANK=0
 GPUS_PER_NODE=${#GPUS[@]}
@@ -28,11 +28,11 @@ DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="span_dwa_kd"
 # hp
-BATCH_SIZE=1
+BATCH_SIZE=8
 LR=0.001
-GRAD_ACC=4
+GRAD_ACC=1
 EVAL_BATCH_SIZE=16
-EPOCH=10
+EPOCH=15
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
@@ -110,8 +110,8 @@ OPTS+=" --max-prompt-length 256"
 # runtime
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
-OPTS+=" --eval-gen"
-OPTS+=" --save-interval 5"
+# OPTS+=" --eval-gen"
+OPTS+=" --save-interval 1"
 OPTS+=" --eval-interval 1"
 OPTS+=" --log-interval 50"
 OPTS+=" --save-dir ${SAVE_PATH}"
@@ -120,9 +120,9 @@ OPTS+=" --criterion ${CRITERION}"
 
 #MTA
 OPTS+=" --MTA-mode"
-OPTS+=" --teacher_layer_mapping 8 12 16 20 24 28"
-OPTS+=" --student_layer_mapping 8 16 24 32 40 48"
-OPTS+=" --split_layer_mapping 0 1 6 6"
+OPTS+=" --teacher_layer_mapping 7 11 14 18 21 25 28"
+OPTS+=" --student_layer_mapping 12 18 24 30 36 42 48"
+OPTS+=" --split_layer_mapping 0 1 7 7"
 OPTS+=" --w-span-loss 2.0"
 # OPTS+=" --entropy-weight"
 
@@ -145,6 +145,8 @@ OPTS+=" --temperature 1.0"
 
 
 export NCCL_DEBUG=""
+export NCCL_NVLS_ENABLE=0
+export NCCL_P2P_DISABLE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONPATH=${BASE_PATH}
@@ -152,4 +154,4 @@ CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
 # ${CMD}
 ${CMD} \
->> ${SAVE_PATH}/train.log 2>&1
+2>&1 | tee -a ${SAVE_PATH}/train.log
