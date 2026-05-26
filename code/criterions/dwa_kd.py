@@ -195,31 +195,8 @@ class DWAKD(VariousDivergence):
         hiddens = student_hiddens_all[-1]
         teacher_hiddens = teacher_hiddens_all[-1]
 
-        if hasattr(distiller.student_model, "model") \
-            and hasattr(distiller.student_model.model, "embed_tokens"):
-            stu_embed_tokens = distiller.student_model.model.embed_tokens
-        elif hasattr(distiller.student_model, "model") \
-            and hasattr(distiller.student_model.model, "model") \
-            and hasattr(distiller.student_model.model.model, "embed_tokens"):
-            stu_embed_tokens = distiller.student_model.model.model.embed_tokens
-        elif hasattr(distiller.student_model, "transformer") \
-            and hasattr(distiller.student_model.transformer, "wte"):
-            stu_embed_tokens = distiller.student_model.transformer.wte
-        else:
-            raise NotImplementedError
-
-        if hasattr(distiller.teacher_model, "model") \
-            and hasattr(distiller.teacher_model.model, "embed_tokens"):
-            tea_embed_tokens = distiller.teacher_model.model.embed_tokens
-        elif hasattr(distiller.teacher_model, "model") \
-            and hasattr(distiller.teacher_model.model, "model") \
-            and hasattr(distiller.teacher_model.model.model, "embed_tokens"):
-            tea_embed_tokens = distiller.teacher_model.model.model.embed_tokens
-        elif hasattr(distiller.teacher_model, "transformer") \
-            and hasattr(distiller.teacher_model.model, "wte"):
-            tea_embed_tokens = distiller.teacher_model.transformer.wte
-        else:
-            raise NotImplementedError
+        stu_embed_tokens = distiller.student_model.get_input_embeddings()
+        tea_embed_tokens = distiller.teacher_model.get_input_embeddings()
 
         formal_target = torch.where(pad_mask, target, torch.zeros_like(target))
         formal_input = torch.where(pad_mask, input_data["input_ids"], torch.zeros_like(target))
@@ -433,31 +410,8 @@ class DWAKD(VariousDivergence):
         target = output_data["label"]
         teacher_target = output_data[f"teacher_{distiller.teacher_model_type}_label"]
         
-        if hasattr(distiller.student_model, "model") \
-            and hasattr(distiller.student_model.model, "embed_tokens"):
-            stu_embed_tokens = distiller.student_model.model.embed_tokens
-        elif hasattr(distiller.student_model, "model") \
-            and hasattr(distiller.student_model.model, "model") \
-            and hasattr(distiller.student_model.model.model, "embed_tokens"):
-            stu_embed_tokens = distiller.student_model.model.model.embed_tokens
-        elif hasattr(distiller.student_model, "transformer") \
-            and hasattr(distiller.student_model.transformer, "wte"):
-            stu_embed_tokens = distiller.student_model.transformer.wte
-        else:
-            raise NotImplementedError
-
-        if hasattr(distiller.teacher_model, "model") \
-            and hasattr(distiller.teacher_model.model, "embed_tokens"):
-            tea_embed_tokens = distiller.teacher_model.model.embed_tokens
-        elif hasattr(distiller.teacher_model, "model") \
-            and hasattr(distiller.teacher_model.model, "model") \
-            and hasattr(distiller.teacher_model.model.model, "embed_tokens"):
-            tea_embed_tokens = distiller.teacher_model.model.model.embed_tokens
-        elif hasattr(distiller.teacher_model, "transformer") \
-            and hasattr(distiller.teacher_model.model, "wte"):
-            tea_embed_tokens = distiller.teacher_model.transformer.wte
-        else:
-            raise NotImplementedError
+        stu_embed_tokens = distiller.student_model.get_input_embeddings()
+        tea_embed_tokens = distiller.teacher_model.get_input_embeddings()
 
         formal_target = torch.where(pad_mask, target, torch.zeros_like(target))
         stu_target_embeds = stu_embed_tokens(formal_target)
