@@ -16,6 +16,16 @@ conda activate "${ENV_NAME}"
 #
 # Run after syncing the get_input_embeddings() fix in dwa_kd.py.
 
+echo "=== Killing any existing processes on the target ports ==="
+for PORT in 7600 7610 7620 7640 7670 7680; do
+    PIDS=$(lsof -ti tcp:${PORT} 2>/dev/null)
+    if [ -n "$PIDS" ]; then
+        echo "  Killing PIDs $PIDS on port $PORT..."
+        kill -9 $PIDS 2>/dev/null || true
+    fi
+done
+sleep 2
+
 echo "=== Rerunning scripts affected by embed_tokens bug ==="
 
 # [CONFIRMED CRASHED] — was already dead when fix was applied
