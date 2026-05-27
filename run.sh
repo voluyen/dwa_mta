@@ -32,7 +32,7 @@ echo "  GPU 1: span_dwa_kd_gpt2_medium | dwa_kd_gpt2_base | span_dwa_kd_tinyllam
 # bash scripts/ablation/span_dwa_kd_gpt2_base_phrase_level.sh &
 # bash scripts/gpt2_medium/span_dwa_kd_gpt2_medium.sh &
 # bash scripts/gpt2/dwa_kd_gpt2_base.sh &
-bash scripts/tinyllama/span_dwa_kd_tinyllama.sh
+# bash scripts/tinyllama/span_dwa_kd_tinyllama.sh
 # bash scripts/gpt2xl/span_dwa_kd_gpt2xl.sh &
-# bash scripts/opt/span_dwa_kd_opt.sh &
+bash scripts/opt/span_dwa_kd_opt.sh
 # wait

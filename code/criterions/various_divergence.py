@@ -180,7 +180,8 @@ class VariousDivergence(CrossEntropyLoss):
         fkl = self.compute_forward_kl_divergence(logits, teacher_logits, target, reduction="none", use_tea_temp=use_tea_temp)
         rkl = self.compute_reverse_kl_divergence(logits, teacher_logits, target, reduction="none", use_tea_temp=use_tea_temp)
 
-        akl = (g_head / (g_head + g_tail)) * fkl + (g_tail / (g_head + g_tail)) * rkl
+        denom = (g_head + g_tail).clamp_min(1e-9)
+        akl = (g_head / denom) * fkl + (g_tail / denom) * rkl
         
         if reduction == "sum":
             pad_mask = target.eq(self.padding_id)

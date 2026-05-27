@@ -328,6 +328,12 @@ class DWAKD(VariousDivergence):
             s_seq = student_embs[i, :s_len, :]
             t_seq = teacher_embs[i, :t_len, :]
 
+            # Skip if inputs contain NaN/Inf (model may have diverged)
+            if torch.isnan(s_seq).any() or torch.isinf(s_seq).any() or \
+               torch.isnan(t_seq).any() or torch.isinf(t_seq).any():
+                non_empty_pairs -= 1
+                continue
+
             c_stu_tea = 1.0 - torch.cosine_similarity(
                 s_seq.unsqueeze(1), t_seq.unsqueeze(0), dim=-1
             )
@@ -339,6 +345,12 @@ class DWAKD(VariousDivergence):
             c_tea_tea = 1.0 - torch.cosine_similarity(
                 t_seq.unsqueeze(1), t_seq.unsqueeze(0), dim=-1
             )
+
+            # Clamp to [0, 2] — cosine distance is theoretically in [0, 2]
+            # Prevents NaN/Inf in Soft-DTW from degenerate hidden states
+            c_stu_tea = c_stu_tea.clamp(0.0, 2.0)
+            c_stu_stu = c_stu_stu.clamp(0.0, 2.0)
+            c_tea_tea = c_tea_tea.clamp(0.0, 2.0)
             
             if self.dtw_band_source == 'cma' and hasattr(self, 'last_align') and self.last_align is not None and self.dtw_band_width > 0:
                 # last_align is (B, S, T). Slice i-th example and valid spans
@@ -397,8 +409,13 @@ class DWAKD(VariousDivergence):
             t2t = self.dtw.forward_with_cost_matrix(c_tea_tea.unsqueeze(0))
 
             pair_loss = s2t - 0.5 * (s2s + t2t)
-        
-            total_loss = total_loss + pair_loss.squeeze() 
+
+            # Skip NaN/Inf pair loss (can happen if Soft-DTW diverges)
+            if torch.isnan(pair_loss) or torch.isinf(pair_loss):
+                non_empty_pairs -= 1
+                continue
+
+            total_loss = total_loss + pair_loss.squeeze()
 
 
         if non_empty_pairs == 0:

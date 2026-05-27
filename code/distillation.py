@@ -238,6 +238,12 @@ def finetune(
                 st_time = time.time()
                 loss, logging_output = model(
                     criterion, batch, logging_output, loss_denom)
+
+                if torch.isnan(loss) or torch.isinf(loss):
+                    log_rank(f"[WARNING] NaN/Inf loss detected at step {step}, skipping backward+step")
+                    step += 1
+                    continue
+
                 model.backward(loss)
                 model.step()
 
