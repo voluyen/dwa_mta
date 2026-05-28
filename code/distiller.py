@@ -198,11 +198,12 @@ class Distiller(nn.Module):
             raise NotImplementedError("Invalid model_dtype for f`{self.args.model_dtype}`")
         
         model = AutoModelForCausalLM.from_pretrained(
-            self.args.model_path, 
-            config=config, 
-            device_map=None, 
+            self.args.model_path,
+            config=config,
+            device_map=None,
             torch_dtype=self.dtype,
             trust_remote_code=True,
+            attn_implementation="eager",
         )
 
         if self.args.peft is not None:
@@ -260,11 +261,12 @@ class Distiller(nn.Module):
             self.teacher_hidden_size = config.hidden_size
 
         model = AutoModelForCausalLM.from_pretrained(
-            self.args.teacher_model_path, 
-            config=config, 
-            device_map=None, 
+            self.args.teacher_model_path,
+            config=config,
+            device_map=None,
             torch_dtype=self.dtype,
-            trust_remote_code=True
+            trust_remote_code=True,
+            attn_implementation="eager",
         )
 
         if self.args.peft is not None and self.args.teacher_peft_path is not None:
@@ -288,11 +290,12 @@ class Distiller(nn.Module):
         config.is_model_parallel = False
 
         model = AutoModelForCausalLM.from_pretrained(
-            self.args.original_model_path, 
-            config=config, 
-            device_map=None, 
+            self.args.original_model_path,
+            config=config,
+            device_map=None,
             torch_dtype=self.dtype,
-            trust_remote_code=True
+            trust_remote_code=True,
+            attn_implementation="eager",
         )
         
         # Freeze all parameters since this is only for reference
