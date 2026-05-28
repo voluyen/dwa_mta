@@ -1,9 +1,9 @@
 #! /bin/bash
-GPUS=(0 1 2 3)
+GPUS=(5)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
-MASTER_PORT=66$(($RANDOM%90+10))
+MASTER_PORT=6604
 NNODES=1
 NODE_RANK=0
 GPUS_PER_NODE=${#GPUS[@]}
@@ -15,24 +15,24 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
                   --master_port $MASTER_PORT"
 
 # model
-BASE_PATH=path_to_project
+BASE_PATH=.
 CKPT_TYPE="opt"
 CKPT_NAME="opt-2.7b"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 TEACHER_MODEL_TYPE="qwen"
-TEACHER_MODEL_NAME="Qwen2.5-7B-Instruct"
-TEACHER_MODEL_PATH="path/to/teacher/model"
+TEACHER_MODEL_NAME="Qwen2.5-7B-Instruct-Dolly-SFT"
+TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
 TEACHER_PEFT_PATH="path/to/teacher/peft"
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
-TASK="dual_space_kd_with_cma"
+TASK="dwa_kd_opt"
 # hp
-BATCH_SIZE=1
+BATCH_SIZE=8
 LR=0.001
-GRAD_ACC=32
-EVAL_BATCH_SIZE=16
-EPOCH=10
+GRAD_ACC=1
+EVAL_BATCH_SIZE=32
+EPOCH=15
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5

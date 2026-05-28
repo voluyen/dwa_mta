@@ -1,9 +1,9 @@
 #! /bin/bash
-GPUS=(0 1 2 3)
+GPUS=(3 4)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
-MASTER_PORT=66$(($RANDOM%90+10))
+MASTER_PORT=6603
 NNODES=1
 NODE_RANK=0
 GPUS_PER_NODE=${#GPUS[@]}
@@ -15,29 +15,32 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
                   --master_port $MASTER_PORT"
 
 # model
-BASE_PATH=path_to_project
+BASE_PATH=.
 CKPT_TYPE="gpt2"
 CKPT_NAME="gpt2-xl"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 # we use qwen-1.8b as the teacher with the different vocabulary from gpt2
 TEACHER_MODEL_TYPE="qwen"
-TEACHER_MODEL_NAME="Qwen2.5-7B-Instruct"
+TEACHER_MODEL_NAME="Qwen2.5-7B-Instruct-Dolly-SFT"
 TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
-TASK="dual_space_kd_with_cma"
+TASK="dwa_kd_gpt2xl"
 # hp
-BATCH_SIZE=2
-LR=0.0005
-GRAD_ACC=16
+BATCH_SIZE=8
+LR=0.001
+GRAD_ACC=1
 EVAL_BATCH_SIZE=32
-EPOCH=10
+EPOCH=15
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
 KD_TEMP=2.0
 DTW_GAMMA=2.0
+LORA_RANK=256
+LORA_ALPHA=8
+LORA_DROPOUT=0.1
 # distiller
 PROJECTOR_CONFIG_PATH="${BASE_PATH}/configs/projector_config.json"
 PROJECTOR_LR=0.001
@@ -47,10 +50,10 @@ MAX_LENGTH=512
 PRECISION="bf16"
 CRITERION="dwa_kd"
 KD_OBJ="skewed_reverse_kl"
-CONFIG="${KD_OBJ}-${PRECISION}"
-SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_NAME}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
+CONFIG="${KD_OBJ}-lora-rank=${LORA_RANK}-alpha=${LORA_ALPHA}-dropout=${LORA_DROPOUT}-${PRECISION}"
+SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_NAME}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__dtw^rate=${DTW_RATE}__ce^rate=${CE_RATE}__dtw^gamma=${DTW_GAMMA}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
 SAVE_PATH="${BASE_PATH}/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
-SAVE_BEST_N_CKPTS=1
+SAVE_BEST_N_CKPTS=5
 # seed
 SEED=10
 
@@ -94,6 +97,10 @@ OPTS+=" --dtw-rate ${DTW_RATE}"
 OPTS+=" --ce-rate ${CE_RATE}"
 OPTS+=" --kd-temperature ${KD_TEMP}"
 OPTS+=" --kd-objective ${KD_OBJ}"
+OPTS+=" --peft lora"
+OPTS+=" --peft-lora-r ${LORA_RANK}"
+OPTS+=" --peft-lora-alpha ${LORA_ALPHA}"
+OPTS+=" --peft-lora-dropout ${LORA_DROPOUT}"
 # distiller
 OPTS+=" --projector-lr ${PROJECTOR_LR}"
 OPTS+=" --projector-config-path ${PROJECTOR_CONFIG_PATH}"

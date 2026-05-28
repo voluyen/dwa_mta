@@ -1,9 +1,9 @@
 #! /bin/bash
-GPUS=(6 7)
+GPUS=(0)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
-MASTER_PORT=66$(($RANDOM%90+10))
+MASTER_PORT=6601
 NNODES=1
 NODE_RANK=0
 GPUS_PER_NODE=${#GPUS[@]}
@@ -15,24 +15,24 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
                   --master_port $MASTER_PORT"
 
 # model
-BASE_PATH=path_to_project
+BASE_PATH=.
 CKPT_TYPE="gpt2"
 CKPT_NAME="gpt2-medium"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 # we use qwen-1.8b as the teacher with the different vocabulary from gpt2
 TEACHER_MODEL_TYPE="qwen"
-TEACHER_MODEL_NAME="Qwen1.5-1.8B"
+TEACHER_MODEL_NAME="Qwen1.5_1.8B_SFT_Dolly"
 TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
-TASK="dual_space_kd_with_cma"
+TASK="dwa_kd_gpt2_medium"
 # hp
-BATCH_SIZE=2
+BATCH_SIZE=8
 LR=0.0005
-GRAD_ACC=16
+GRAD_ACC=1
 EVAL_BATCH_SIZE=32
-EPOCH=10
+EPOCH=20
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
@@ -50,7 +50,7 @@ KD_OBJ="skewed_reverse_kl"
 CONFIG="${KD_OBJ}-${PRECISION}"
 SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_NAME}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
 SAVE_PATH="${BASE_PATH}/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
-SAVE_BEST_N_CKPTS=1
+SAVE_BEST_N_CKPTS=5
 # seed
 SEED=10
 
@@ -103,7 +103,7 @@ OPTS+=" --max-prompt-length 256"
 # runtime
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
-OPTS+=" --eval-gen"
+# OPTS+=" --eval-gen"
 OPTS+=" --save-interval 1"
 OPTS+=" --eval-interval 1"
 OPTS+=" --log-interval 50"

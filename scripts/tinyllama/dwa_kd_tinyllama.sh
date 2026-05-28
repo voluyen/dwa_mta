@@ -1,9 +1,9 @@
 #! /bin/bash
-GPUS=(0 1 2 3)
+GPUS=(1 2)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
-MASTER_PORT=66$(($RANDOM%90+10))
+MASTER_PORT=6602
 NNODES=1
 NODE_RANK=0
 GPUS_PER_NODE=${#GPUS[@]}
@@ -15,24 +15,24 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
                   --master_port $MASTER_PORT"
 
 # model
-BASE_PATH=path_to_project
+BASE_PATH=.
 CKPT_TYPE="tinyllama"
 CKPT_NAME="tinyllama-1.1b-3T"
 CKPT_PATH="${BASE_PATH}/model_hub/${CKPT_TYPE}/${CKPT_NAME}"
 TEACHER_MODEL_TYPE="mistral"
-TEACHER_MODEL_NAME="Mistral-7b-v0.1"
+TEACHER_MODEL_NAME="Mistral7B_Dolly_SFT"
 TEACHER_MODEL_PATH="${BASE_PATH}/model_hub/${TEACHER_MODEL_TYPE}/${TEACHER_MODEL_NAME}"
 TEACHER_PEFT_PATH="path_to_teacher_sft_ckpt"
 # data
 DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
-TASK="dual_space_kd_with_cma"
+TASK="dwa_kd_tinyllama"
 # hp
-BATCH_SIZE=1
+BATCH_SIZE=8
 LR=0.001
-GRAD_ACC=32
-EVAL_BATCH_SIZE=16
-EPOCH=10
+GRAD_ACC=1
+EVAL_BATCH_SIZE=32
+EPOCH=15
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
@@ -53,7 +53,7 @@ KD_OBJ="adaptive_kl"  # [forward_kl, reverse_kl, js_divergence, skewed_forward_k
 CONFIG="${KD_OBJ}-lora-rank=${LORA_RANK}-alpha=${LORA_ALPHA}-dropout=${LORA_DROPOUT}-${PRECISION}"
 SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_TYPE}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__dtw^rate=${DTW_RATE}__ce^rate=${CE_RATE}__dtw^gamma=${DTW_GAMMA}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
 SAVE_PATH="${BASE_PATH}/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
-SAVE_BEST_N_CKPTS=1
+SAVE_BEST_N_CKPTS=5
 # seed
 SEED=10
 
