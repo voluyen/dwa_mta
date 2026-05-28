@@ -1,11 +1,10 @@
 #! /bin/bash
 # Full pipeline: conda activate → install deps → download models → train
 #
-# GPU allocation (6x H200):
-#   GPU 0     → gpt2-medium  (340M,  Qwen1.5_1.8B_SFT_Dolly,        Full FT)
-#   GPU 1,2   → tinyllama    (1.1B,  Mistral7B_Dolly_SFT,            LoRA)
-#   GPU 3,4   → gpt2-xl      (1.5B,  Qwen2.5-7B-Instruct-Dolly-SFT, LoRA)
-#   GPU 5     → opt-2.7b     (2.7B,  Qwen2.5-7B-Instruct-Dolly-SFT, LoRA)
+# GPU allocation:
+#   GPU 5     → gpt2-medium  (340M,  Qwen1.5_1.8B_SFT_Dolly,        Full FT)
+#   GPU 7     → tinyllama    (1.1B,  Mistral7B_Dolly_SFT,            LoRA)
+#   GPU 7     → gpt2-xl      (1.5B,  Qwen2.5-7B-Instruct-Dolly-SFT, LoRA)
 #
 # Usage: bash run.sh
 
@@ -34,22 +33,18 @@ cd "${BASE_PATH}"
 bash "${BASE_PATH}/download_model.sh"
 
 # ── 4. Launch training jobs (each script runs torchrun in background) ─────────
-log "Launching all 4 training jobs..."
+log "Launching all 3 training jobs..."
 
 bash "${BASE_PATH}/scripts/gpt2_medium/dwa_kd_gpt2_medium.sh"
-log "  ✓ gpt2-medium  → GPU 0,   port 6601"
+log "  ✓ gpt2-medium  → GPU 5, port 6601"
 
 bash "${BASE_PATH}/scripts/tinyllama/dwa_kd_tinyllama.sh"
-log "  ✓ tinyllama    → GPU 1-2, port 6602"
+log "  ✓ tinyllama    → GPU 7, port 6602"
 
 bash "${BASE_PATH}/scripts/gpt2xl/dwa_kd_gpt2xl.sh"
-log "  ✓ gpt2-xl      → GPU 3-4, port 6603"
-
-bash "${BASE_PATH}/scripts/opt/dwa_kd_opt.sh"
-log "  ✓ opt-2.7b     → GPU 5,   port 6604"
+log "  ✓ gpt2-xl      → GPU 7, port 6603"
 
 log "All jobs launched. Monitor logs:"
 log "  tail -f ${BASE_PATH}/outputs/gpt2/gpt2-medium/dwa_kd_gpt2_medium/*/train.log"
 log "  tail -f ${BASE_PATH}/outputs/tinyllama/tinyllama-1.1b-3T/dwa_kd_tinyllama/*/train.log"
 log "  tail -f ${BASE_PATH}/outputs/gpt2/gpt2-xl/dwa_kd_gpt2xl/*/train.log"
-log "  tail -f ${BASE_PATH}/outputs/opt/opt-2.7b/dwa_kd_opt/*/train.log"

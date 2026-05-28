@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(0)
+GPUS=(5)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -134,6 +134,4 @@ export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONPATH=${BASE_PATH}
 CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
-# ${CMD}
-${CMD} \
->> ${SAVE_PATH}/train.log 2>&1 &
+${CMD} 2>&1 | tee -a ${SAVE_PATH}/train.log &
