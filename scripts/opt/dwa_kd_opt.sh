@@ -1,9 +1,9 @@
 #! /bin/bash
-GPUS=(5)
+GPUS=(4)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
-MASTER_PORT=6604
+MASTER_PORT=7651
 NNODES=1
 NODE_RANK=0
 GPUS_PER_NODE=${#GPUS[@]}
