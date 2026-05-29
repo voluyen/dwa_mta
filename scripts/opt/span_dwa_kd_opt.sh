@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(4)
+GPUS=(0 1)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -28,7 +28,7 @@ DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="span_dwa_kd"
 # hp
-BATCH_SIZE=32
+BATCH_SIZE=16
 LR=0.001
 GRAD_ACC=1
 EVAL_BATCH_SIZE=32
