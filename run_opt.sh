@@ -14,5 +14,4 @@ export TOKENIZERS_PARALLELISM=false
 cd "${BASE_PATH}"
 
 echo "Re-running span_dwa_kd_opt (GPU 6) and dwa_kd_opt (GPU 4)..."
-bash scripts/opt/span_dwa_kd_opt.sh &
-bash scripts/opt/dwa_kd_opt.sh
+bash scripts/opt/span_dwa_kd_opt.sh

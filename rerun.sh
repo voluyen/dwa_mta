@@ -1,5 +1,5 @@
 #! /bin/bash
-# Rerun only the OPT job on GPU 0,1.
+# Rerun only the phrase-level ablation job on GPU 4.
 # Usage: bash rerun.sh
 
 set -eo pipefail
@@ -16,8 +16,8 @@ conda activate "${ENV_NAME}"
 
 export TOKENIZERS_PARALLELISM=false
 
-# ── 2. Launch OPT job ────────────────────────────────────────────────────────
-log "Launching span_dwa_kd_opt on GPU 0,1 port 7650..."
+# ── 2. Launch job ─────────────────────────────────────────────────────────────
+log "Launching span_dwa_kd_gpt2_base_phrase_level on GPU 4 port 7680..."
 cd "${BASE_PATH}"
-bash "${BASE_PATH}/scripts/opt/span_dwa_kd_opt.sh"
+bash "${BASE_PATH}/scripts/ablation/span_dwa_kd_gpt2_base_phrase_level.sh"
 log "Done."
