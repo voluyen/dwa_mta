@@ -203,6 +203,7 @@ class Distiller(nn.Module):
             device_map=None,
             torch_dtype=self.dtype,
             trust_remote_code=True,
+            attn_implementation="eager",
         )
 
         if self.args.peft is not None:
@@ -265,6 +266,7 @@ class Distiller(nn.Module):
             device_map=None,
             torch_dtype=self.dtype,
             trust_remote_code=True,
+            attn_implementation="eager",
         )
 
         if self.args.peft is not None and self.args.teacher_peft_path is not None:
@@ -293,6 +295,7 @@ class Distiller(nn.Module):
             device_map=None,
             torch_dtype=self.dtype,
             trust_remote_code=True,
+            attn_implementation="eager",
         )
         
         # Freeze all parameters since this is only for reference
