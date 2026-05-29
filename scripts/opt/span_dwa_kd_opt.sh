@@ -149,6 +149,8 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONNOUSERSITE=1
 export PYTHONPATH=${BASE_PATH}
+export TORCH_CUDNN_SDPA_ENABLED=0
+export NVIDIA_TF32_OVERRIDE=0
 CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
 ${CMD} \
