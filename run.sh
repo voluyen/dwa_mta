@@ -1,16 +1,16 @@
 #! /bin/bash
-# GPU allocation — 4× H200 140 GB (GPUs 0-3)
+# GPU allocation — 4× H200 140 GB (GPUs 4-7)
 #
-#  GPU 0 (~45 GB):  span_dwa_kd_opt        (OPT-2.7B LoRA + Qwen2.5-7B, MTA, batch=32×1)
+#  GPU 4 (~45 GB):  span_dwa_kd_opt        (OPT-2.7B LoRA + Qwen2.5-7B, MTA, batch=32×1)
 #
-#  GPU 1 (~35 GB):  span_dwa_kd_gpt2xl                 (GPT2-XL   LoRA + Qwen2.5-7B, batch=32×1)
+#  GPU 5 (~35 GB):  span_dwa_kd_gpt2xl                 (GPT2-XL   LoRA + Qwen2.5-7B, batch=32×1)
 #                   span_dwa_kd_gpt2_base_wo_weight    (GPT2-base Full FT,            batch=32×1)
 #
-#  GPU 2 (~28 GB):  span_dwa_kd_gpt2_base              (GPT2-base Full FT, batch=32×1)
+#  GPU 6 (~28 GB):  span_dwa_kd_gpt2_base              (GPT2-base Full FT, batch=32×1)
 #                   span_dwa_kd_gpt2_base_phrase_level  (GPT2-base Full FT, batch=32×1)
 #                   span_dwa_kd_gpt2_base_word_level    (GPT2-base Full FT, batch=32×1)
 #
-#  GPU 3 (~38 GB):  span_dwa_kd_tinyllama              (TinyLlama LoRA + Mistral-7B,  batch=32×1)
+#  GPU 7 (~38 GB):  span_dwa_kd_tinyllama              (TinyLlama LoRA + Mistral-7B,  batch=32×1)
 #                   span_dwa_kd_gpt2_medium             (GPT2-medium Full FT,          batch=32×1)
 #
 # All scripts share effective batch = 32 (batch_size × grad_acc).
