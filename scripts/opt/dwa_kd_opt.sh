@@ -28,9 +28,9 @@ DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="dwa_kd_opt"
 # hp
-BATCH_SIZE=8
+BATCH_SIZE=32
 LR=0.001
-GRAD_ACC=1
+GRAD_ACC=2
 EVAL_BATCH_SIZE=32
 EPOCH=15
 DTW_RATE=0.2
@@ -140,11 +140,6 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONNOUSERSITE=1
 export PYTHONPATH=${BASE_PATH}
-# Hopper/H200 numerical stability: disable flash/mem-efficient SDPA, cuDNN SDPA, and TF32
-export PYTORCH_SDP_DISABLE_FLASH=1
-export PYTORCH_SDP_DISABLE_MEM_EFFICIENT=1
-export TORCH_CUDNN_SDPA_ENABLED=0
-export NVIDIA_TF32_OVERRIDE=0
 CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
 ${CMD} 2>&1 | tee -a ${SAVE_PATH}/train.log &

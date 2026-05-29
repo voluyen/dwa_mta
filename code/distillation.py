@@ -518,8 +518,6 @@ def evaluate(args, tokenizer, model, dataset, split, device, repeat_times=None):
 
 def main():
     torch.backends.cudnn.enabled = False
-    torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.allow_tf32 = False
 
     args = get_args()
     initialize(args)

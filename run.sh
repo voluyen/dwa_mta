@@ -1,10 +1,19 @@
 #! /bin/bash
-# Full pipeline: conda activate → install deps → download models → train
+# GPU allocation — 4× H200 140 GB (GPUs 0-3)
 #
-# GPU allocation:
-#   GPU 5     → gpt2-medium  (340M,  Qwen1.5_1.8B_SFT_Dolly,        Full FT)
-#   GPU 7     → tinyllama    (1.1B,  Mistral7B_Dolly_SFT,            LoRA)
-#   GPU 7     → gpt2-xl      (1.5B,  Qwen2.5-7B-Instruct-Dolly-SFT, LoRA)
+#  GPU 0 (~45 GB):  span_dwa_kd_opt        (OPT-2.7B LoRA + Qwen2.5-7B, MTA, batch=32×1)
+#
+#  GPU 1 (~35 GB):  span_dwa_kd_gpt2xl                 (GPT2-XL   LoRA + Qwen2.5-7B, batch=32×1)
+#                   span_dwa_kd_gpt2_base_wo_weight    (GPT2-base Full FT,            batch=32×1)
+#
+#  GPU 2 (~28 GB):  span_dwa_kd_gpt2_base              (GPT2-base Full FT, batch=32×1)
+#                   span_dwa_kd_gpt2_base_phrase_level  (GPT2-base Full FT, batch=32×1)
+#                   span_dwa_kd_gpt2_base_word_level    (GPT2-base Full FT, batch=32×1)
+#
+#  GPU 3 (~38 GB):  span_dwa_kd_tinyllama              (TinyLlama LoRA + Mistral-7B,  batch=32×1)
+#                   span_dwa_kd_gpt2_medium             (GPT2-medium Full FT,          batch=32×1)
+#
+# All scripts share effective batch = 32 (batch_size × grad_acc).
 #
 # Usage: bash run.sh
 
@@ -20,7 +29,6 @@ log "Activating conda env: ${ENV_NAME}"
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "${ENV_NAME}"
 
-# Prevent tokenizer fork deadlock (must be set in this shell, not a subshell)
 export TOKENIZERS_PARALLELISM=false
 
 # ── 2. Install dependencies ───────────────────────────────────────────────────
@@ -32,19 +40,37 @@ log "Downloading models via download_model.sh..."
 cd "${BASE_PATH}"
 bash "${BASE_PATH}/download_model.sh"
 
-# ── 4. Launch training jobs (each script runs torchrun in background) ─────────
-log "Launching all 3 training jobs..."
+# ── 4. Launch all 8 training jobs ────────────────────────────────────────────
+log "Launching 8 training jobs across 4× H200 140 GB..."
 
-bash "${BASE_PATH}/scripts/gpt2_medium/dwa_kd_gpt2_medium.sh"
-log "  ✓ gpt2-medium  → GPU 5, port 6601"
+# GPU 0 — OPT-2.7B + MTA (heaviest job, runs alone)
+bash "${BASE_PATH}/scripts/opt/span_dwa_kd_opt.sh" &
+log "  GPU 0 | span_dwa_kd_opt        port 7650"
 
-bash "${BASE_PATH}/scripts/tinyllama/dwa_kd_tinyllama.sh"
-log "  ✓ tinyllama    → GPU 7, port 6602"
+# GPU 1 — GPT2-XL + wo_weight ablation
+bash "${BASE_PATH}/scripts/gpt2xl/span_dwa_kd_gpt2xl.sh" &
+log "  GPU 1 | span_dwa_kd_gpt2xl               port 7640"
 
-bash "${BASE_PATH}/scripts/gpt2xl/dwa_kd_gpt2xl.sh"
-log "  ✓ gpt2-xl      → GPU 7, port 6603"
+bash "${BASE_PATH}/scripts/ablation/span_dwa_kd_gpt2_base_wo_weight.sh" &
+log "  GPU 1 | span_dwa_kd_gpt2_base_wo_weight  port 7660"
 
-log "All jobs launched. Monitor logs:"
-log "  tail -f ${BASE_PATH}/outputs/gpt2/gpt2-medium/dwa_kd_gpt2_medium/*/train.log"
-log "  tail -f ${BASE_PATH}/outputs/tinyllama/tinyllama-1.1b-3T/dwa_kd_tinyllama/*/train.log"
-log "  tail -f ${BASE_PATH}/outputs/gpt2/gpt2-xl/dwa_kd_gpt2xl/*/train.log"
+# GPU 2 — GPT2-base main + phrase-level + word-level ablations
+bash "${BASE_PATH}/scripts/gpt2/span_dwa_kd_gpt2_base.sh" &
+log "  GPU 2 | span_dwa_kd_gpt2_base              port 7610"
+
+bash "${BASE_PATH}/scripts/ablation/span_dwa_kd_gpt2_base_phrase_level.sh" &
+log "  GPU 2 | span_dwa_kd_gpt2_base_phrase_level port 7680"
+
+bash "${BASE_PATH}/scripts/ablation/span_dwa_kd_gpt2_base_word_level.sh" &
+log "  GPU 2 | span_dwa_kd_gpt2_base_word_level   port 7670"
+
+# GPU 3 — TinyLlama + GPT2-medium
+bash "${BASE_PATH}/scripts/tinyllama/span_dwa_kd_tinyllama.sh" &
+log "  GPU 3 | span_dwa_kd_tinyllama  port 7630"
+
+bash "${BASE_PATH}/scripts/gpt2_medium/span_dwa_kd_gpt2_medium.sh" &
+log "  GPU 3 | span_dwa_kd_gpt2_medium port 7620"
+
+log "All 8 jobs launched. Waiting for completion..."
+wait
+log "Done."
