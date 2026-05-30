@@ -1,17 +1,17 @@
 #! /bin/bash
-# 2-round parallel training across 4 GPUs (0-3).
+# 2-round parallel training across 4 GPUs (4-7).
 #
 # Round 1 (parallel):
-#  GPU 0 — span_dwa_kd_gpt2_base
-#  GPU 1 — span_dwa_kd_tinyllama
-#  GPU 2 — span_dwa_kd_opt
-#  GPU 3 — span_dwa_kd_gpt2xl
+#  GPU 4 — span_dwa_kd_gpt2_base
+#  GPU 5 — span_dwa_kd_tinyllama
+#  GPU 6 — span_dwa_kd_opt
+#  GPU 7 — span_dwa_kd_gpt2xl
 #
 # Round 2 (parallel, starts after round 1 finishes):
-#  GPU 0 — dwa_kd_gpt2_medium
-#  GPU 1 — dwa_kd_gpt2xl
-#  GPU 2 — dwa_kd_opt
-#  GPU 3 — dwa_kd_tinyllama
+#  GPU 4 — dwa_kd_gpt2_medium
+#  GPU 5 — dwa_kd_gpt2xl
+#  GPU 6 — dwa_kd_opt
+#  GPU 7 — dwa_kd_tinyllama
 #
 # Usage: bash run.sh
 

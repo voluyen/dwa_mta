@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(0)
+GPUS=(4)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
