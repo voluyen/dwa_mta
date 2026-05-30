@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(2)
+GPUS=(0)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -29,9 +29,9 @@ DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="span_dwa_kd"
 # hp
-BATCH_SIZE=32
+BATCH_SIZE=16
 LR=0.0005
-GRAD_ACC=1
+GRAD_ACC=2
 EVAL_BATCH_SIZE=32
 EPOCH=10
 DTW_RATE=0.2
@@ -50,7 +50,7 @@ CRITERION="dwa_kd"
 KD_OBJ="skewed_reverse_kl"
 CONFIG="${KD_OBJ}-${PRECISION}"
 SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_NAME}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
-SAVE_PATH="${BASE_PATH}/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
+SAVE_PATH="${BASE_PATH}/outputs/3005/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
 SAVE_BEST_N_CKPTS=5
 # seed
 SEED=10

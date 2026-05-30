@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(7)
+GPUS=(0)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -30,9 +30,9 @@ TASK="dwa_kd_tinyllama"
 # hp
 BATCH_SIZE=8
 LR=0.001
-GRAD_ACC=1
+GRAD_ACC=2
 EVAL_BATCH_SIZE=32
-EPOCH=15
+EPOCH=10
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
@@ -52,7 +52,7 @@ CRITERION="dwa_kd"
 KD_OBJ="adaptive_kl"  # [forward_kl, reverse_kl, js_divergence, skewed_forward_kl, skewed_reverse_kl, adaptive_kl]
 CONFIG="${KD_OBJ}-lora-rank=${LORA_RANK}-alpha=${LORA_ALPHA}-dropout=${LORA_DROPOUT}-${PRECISION}"
 SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_TYPE}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__dtw^rate=${DTW_RATE}__ce^rate=${CE_RATE}__dtw^gamma=${DTW_GAMMA}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
-SAVE_PATH="${BASE_PATH}/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
+SAVE_PATH="${BASE_PATH}/outputs/3005/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
 SAVE_BEST_N_CKPTS=5
 # seed
 SEED=10
@@ -139,4 +139,4 @@ export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONPATH=${BASE_PATH}
 CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
-${CMD} 2>&1 | tee -a ${SAVE_PATH}/train.log &
+${CMD} 2>&1 | tee -a ${SAVE_PATH}/train.log

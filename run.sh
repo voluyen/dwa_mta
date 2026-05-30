@@ -1,7 +1,15 @@
 #! /bin/bash
-# GPU allocation
+# Sequential training runs — all jobs use GPU 0 one at a time.
 #
-#  GPU 4 (~28 GB):  span_dwa_kd_gpt2_base_phrase_level  (GPT2-base Full FT, batch=32×1)
+# Order:
+#  1. span_dwa_kd_gpt2_base
+#  2. span_dwa_kd_tinyllama
+#  3. span_dwa_kd_opt
+#  4. span_dwa_kd_gpt2xl
+#  5. dwa_kd_gpt2_medium
+#  6. dwa_kd_gpt2xl
+#  7. dwa_kd_opt
+#  8. dwa_kd_tinyllama
 #
 # Usage: bash run.sh
 
@@ -28,12 +36,24 @@ log "Downloading models via download_model.sh..."
 cd "${BASE_PATH}"
 bash "${BASE_PATH}/download_model.sh"
 
-# ── 4. Launch training job ────────────────────────────────────────────────────
-log "Launching training job..."
+# ── 4. Run 8 training jobs sequentially ──────────────────────────────────────
+SCRIPTS=(
+    "scripts/gpt2/span_dwa_kd_gpt2_base.sh"
+    "scripts/tinyllama/span_dwa_kd_tinyllama.sh"
+    "scripts/opt/span_dwa_kd_opt.sh"
+    "scripts/gpt2xl/span_dwa_kd_gpt2xl.sh"
+    "scripts/gpt2_medium/dwa_kd_gpt2_medium.sh"
+    "scripts/gpt2xl/dwa_kd_gpt2xl.sh"
+    "scripts/opt/dwa_kd_opt.sh"
+    "scripts/tinyllama/dwa_kd_tinyllama.sh"
+)
 
-bash "${BASE_PATH}/scripts/ablation/span_dwa_kd_gpt2_base_phrase_level.sh" &
-log "  GPU 4 | span_dwa_kd_gpt2_base_phrase_level  port 7680"
+TOTAL=${#SCRIPTS[@]}
+for i in "${!SCRIPTS[@]}"; do
+    SCRIPT="${SCRIPTS[$i]}"
+    log "[$(( i + 1 ))/${TOTAL}] Starting: ${SCRIPT}"
+    bash "${BASE_PATH}/${SCRIPT}"
+    log "[$(( i + 1 ))/${TOTAL}] Finished: ${SCRIPT}"
+done
 
-log "Job launched. Waiting for completion..."
-wait
-log "Done."
+log "All ${TOTAL} jobs completed."

@@ -1,5 +1,5 @@
 #! /bin/bash
-GPUS=(4)
+GPUS=(0)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
 MASTER_ADDR=localhost
@@ -28,16 +28,16 @@ DATA_DIR="${BASE_PATH}/data/dolly/"
 # task
 TASK="dwa_kd_opt"
 # hp
-BATCH_SIZE=32
+BATCH_SIZE=8
 LR=0.001
 GRAD_ACC=2
 EVAL_BATCH_SIZE=32
-EPOCH=15
+EPOCH=10
 DTW_RATE=0.2
 CE_RATE=0.5
 KD_RATE=0.5
 KD_TEMP=2.0
-DTW_GAMMA=2.0
+DTW_GAMMA=1.0
 LORA_RANK=256
 LORA_ALPHA=8
 LORA_DROPOUT=0.1
@@ -52,7 +52,7 @@ CRITERION="dwa_kd"
 KD_OBJ="skewed_reverse_kl"  # [forward_kl, reverse_kl, js_divergence, skewed_forward_kl, skewed_reverse_kl, adaptive_kl]
 CONFIG="${KD_OBJ}-lora-rank=${LORA_RANK}-alpha=${LORA_ALPHA}-dropout=${LORA_DROPOUT}-${PRECISION}"
 SETTING=criterion=${CRITERION}__${CONFIG}__teacher=${TEACHER_MODEL_TYPE}__kd^rate=${KD_RATE}__kd^temp=${KD_TEMP}__dtw^rate=${DTW_RATE}__ce^rate=${CE_RATE}__dtw^gamma=${DTW_GAMMA}__epoch=${EPOCH}__bsz=${BATCH_SIZE}x${GRAD_ACC}x${GPUS_PER_NODE}=$((BATCH_SIZE * GRAD_ACC * GPUS_PER_NODE * NNODES))__lr=${LR}__proj^lr=${PROJECTOR_LR}
-SAVE_PATH="${BASE_PATH}/outputs/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
+SAVE_PATH="${BASE_PATH}/outputs/3005/${CKPT_TYPE}/${CKPT_NAME}/${TASK}/${SETTING}"
 SAVE_BEST_N_CKPTS=1
 # seed
 SEED=10
@@ -84,9 +84,9 @@ OPTS+=" --lr ${LR}"
 OPTS+=" --batch-size ${BATCH_SIZE}"
 OPTS+=" --eval-batch-size ${EVAL_BATCH_SIZE}"
 OPTS+=" --gradient-accumulation-steps ${GRAD_ACC}"
-OPTS+=" --warmup-iters 300"
-OPTS+=" --kd-warmup-steps 300"
-OPTS+=" --dtw-warmup-steps 300"
+OPTS+=" --warmup-iters 0"
+OPTS+=" --kd-warmup-steps 0"
+OPTS+=" --dtw-warmup-steps 0"
 OPTS+=" --lr-decay-style cosine"
 OPTS+=" --weight-decay 1e-2"
 OPTS+=" --clip-grad 1.0"
@@ -146,4 +146,4 @@ export TORCH_CUDNN_SDPA_ENABLED=0
 export NVIDIA_TF32_OVERRIDE=0
 CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/code/distillation.py ${OPTS}"
 
-${CMD} 2>&1 | tee -a ${SAVE_PATH}/train.log &
+${CMD} 2>&1 | tee -a ${SAVE_PATH}/train.log
