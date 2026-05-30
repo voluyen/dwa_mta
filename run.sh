@@ -1,15 +1,17 @@
 #! /bin/bash
-# Sequential training runs — all jobs use GPU 0 one at a time.
+# 2-round parallel training across 4 GPUs (0-3).
 #
-# Order:
-#  1. span_dwa_kd_gpt2_base
-#  2. span_dwa_kd_tinyllama
-#  3. span_dwa_kd_opt
-#  4. span_dwa_kd_gpt2xl
-#  5. dwa_kd_gpt2_medium
-#  6. dwa_kd_gpt2xl
-#  7. dwa_kd_opt
-#  8. dwa_kd_tinyllama
+# Round 1 (parallel):
+#  GPU 0 — span_dwa_kd_gpt2_base
+#  GPU 1 — span_dwa_kd_tinyllama
+#  GPU 2 — span_dwa_kd_opt
+#  GPU 3 — span_dwa_kd_gpt2xl
+#
+# Round 2 (parallel, starts after round 1 finishes):
+#  GPU 0 — dwa_kd_gpt2_medium
+#  GPU 1 — dwa_kd_gpt2xl
+#  GPU 2 — dwa_kd_opt
+#  GPU 3 — dwa_kd_tinyllama
 #
 # Usage: bash run.sh
 
@@ -36,24 +38,40 @@ log "Downloading models via download_model.sh..."
 cd "${BASE_PATH}"
 bash "${BASE_PATH}/download_model.sh"
 
-# ── 4. Run 8 training jobs sequentially ──────────────────────────────────────
-SCRIPTS=(
-    "scripts/gpt2/span_dwa_kd_gpt2_base.sh"
-    "scripts/tinyllama/span_dwa_kd_tinyllama.sh"
-    "scripts/opt/span_dwa_kd_opt.sh"
-    "scripts/gpt2xl/span_dwa_kd_gpt2xl.sh"
-    "scripts/gpt2_medium/dwa_kd_gpt2_medium.sh"
-    "scripts/gpt2xl/dwa_kd_gpt2xl.sh"
-    "scripts/opt/dwa_kd_opt.sh"
-    "scripts/tinyllama/dwa_kd_tinyllama.sh"
-)
+# ── 4. Round 1: 4 jobs in parallel ───────────────────────────────────────────
+log "Round 1/2 — launching 4 jobs in parallel..."
 
-TOTAL=${#SCRIPTS[@]}
-for i in "${!SCRIPTS[@]}"; do
-    SCRIPT="${SCRIPTS[$i]}"
-    log "[$(( i + 1 ))/${TOTAL}] Starting: ${SCRIPT}"
-    bash "${BASE_PATH}/${SCRIPT}"
-    log "[$(( i + 1 ))/${TOTAL}] Finished: ${SCRIPT}"
-done
+bash "${BASE_PATH}/scripts/gpt2/span_dwa_kd_gpt2_base.sh" &
+log "  GPU 0 | span_dwa_kd_gpt2_base   (PID $!)"
 
-log "All ${TOTAL} jobs completed."
+bash "${BASE_PATH}/scripts/tinyllama/span_dwa_kd_tinyllama.sh" &
+log "  GPU 1 | span_dwa_kd_tinyllama   (PID $!)"
+
+bash "${BASE_PATH}/scripts/opt/span_dwa_kd_opt.sh" &
+log "  GPU 2 | span_dwa_kd_opt         (PID $!)"
+
+bash "${BASE_PATH}/scripts/gpt2xl/span_dwa_kd_gpt2xl.sh" &
+log "  GPU 3 | span_dwa_kd_gpt2xl      (PID $!)"
+
+log "Round 1/2 — waiting for all 4 jobs to finish..."
+wait
+log "Round 1/2 — done."
+
+# ── 5. Round 2: 4 jobs in parallel ───────────────────────────────────────────
+log "Round 2/2 — launching 4 jobs in parallel..."
+
+bash "${BASE_PATH}/scripts/gpt2_medium/dwa_kd_gpt2_medium.sh" &
+log "  GPU 0 | dwa_kd_gpt2_medium      (PID $!)"
+
+bash "${BASE_PATH}/scripts/gpt2xl/dwa_kd_gpt2xl.sh" &
+log "  GPU 1 | dwa_kd_gpt2xl           (PID $!)"
+
+bash "${BASE_PATH}/scripts/opt/dwa_kd_opt.sh" &
+log "  GPU 2 | dwa_kd_opt              (PID $!)"
+
+bash "${BASE_PATH}/scripts/tinyllama/dwa_kd_tinyllama.sh" &
+log "  GPU 3 | dwa_kd_tinyllama        (PID $!)"
+
+log "Round 2/2 — waiting for all 4 jobs to finish..."
+wait
+log "Round 2/2 — done. All 8 jobs completed."
