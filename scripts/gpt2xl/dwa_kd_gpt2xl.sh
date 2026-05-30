@@ -106,7 +106,7 @@ OPTS+=" --projector-lr ${PROJECTOR_LR}"
 OPTS+=" --projector-config-path ${PROJECTOR_CONFIG_PATH}"
 # length
 OPTS+=" --max-length ${MAX_LENGTH}"
-OPTS+=" --max-prompt-length 256"
+OPTS+=" --max-prompt-length 128"
 # runtime
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
